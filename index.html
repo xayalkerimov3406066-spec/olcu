@@ -14,8 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ölçü Pasportu">
 <style>
-  :root{color-scheme:light;
-    padding-top:env(safe-area-inset-top,0px);
+  :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px)}
   html,body{margin:0}
   body{font:14px/1.5 system-ui,-apple-system,sans-serif}
@@ -27,14 +26,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
-/* Tək sütunlu addım-addım forma; ölçü rəqəmləri mono, cədvəl sütunları tabular-nums */
+/* Tək sütunlu addım-addım axın; ölçü rəqəmləri mono, cədvəl sütunları tabular-nums */
 :root{
   --paper:#f7f6f3; --card:#ffffff; --sunk:#f1efea;
   --ink:#1a1917; --muted:#6d6a64; --line:#e2dfd8;
   --accent:#0c6b57; --accent-ink:#ffffff; --accent-soft:#e2efeb;
   --ok:#1c7a46; --warn:#935508; --bad:#a93226;
-  --figure:#d9d5cc; --figure-2:#c6c0b4;
-  --m-shoulder:#0e7490; --m-chest:#1d4ed8; --m-waist:#a16207;
+  --figure:#d9d5cc; --figure-2:#c6c0b4; --cloth:#cdc8bd; --cloth-line:#8f887c;
+  --m-shoulder:#0e7490; --m-chest:#1d4ed8; --m-underbust:#0369a1; --m-waist:#a16207;
   --m-hip:#7e22ce; --m-sleeve:#15803d; --m-inseam:#be185d; --m-foot:#c2410c;
   --font-ui:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -44,8 +43,8 @@
   --ink:#e8eaee; --muted:#959aa4; --line:#2a2d35;
   --accent:#3ed3ab; --accent-ink:#06211a; --accent-soft:#102a23;
   --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
-  --figure:#282c35; --figure-2:#343945;
-  --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-waist:#fbbf24;
+  --figure:#282c35; --figure-2:#343945; --cloth:#2f3540; --cloth-line:#737b8a;
+  --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-underbust:#38bdf8; --m-waist:#fbbf24;
   --m-hip:#c084fc; --m-sleeve:#4ade80; --m-inseam:#f472b6; --m-foot:#fb923c;
   color-scheme:dark;
 }}
@@ -54,8 +53,8 @@
   --ink:#e8eaee; --muted:#959aa4; --line:#2a2d35;
   --accent:#3ed3ab; --accent-ink:#06211a; --accent-soft:#102a23;
   --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
-  --figure:#282c35; --figure-2:#343945;
-  --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-waist:#fbbf24;
+  --figure:#282c35; --figure-2:#343945; --cloth:#2f3540; --cloth-line:#737b8a;
+  --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-underbust:#38bdf8; --m-waist:#fbbf24;
   --m-hip:#c084fc; --m-sleeve:#4ade80; --m-inseam:#f472b6; --m-foot:#fb923c;
   color-scheme:dark;
 }
@@ -65,14 +64,14 @@ body{background:var(--paper);color:var(--ink);font-family:var(--font-ui);
   font-size:15px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:0 48px}
+  padding-block:0 52px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);
   z-index:10;background:var(--paper)}
-.wrap{max-width:560px;margin:0 auto}
+.wrap{max-width:580px;margin:0 auto}
 
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);
-  padding-block:14px 10px;border-bottom:1px solid var(--line);margin-bottom:20px}
-.topbar .row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  padding-block:14px 10px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.topbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .stepno{font-family:var(--font-num);font-size:12px;color:var(--muted)}
 .bar{display:flex;gap:4px;margin-top:9px}
@@ -82,6 +81,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 h1{font-size:25px;line-height:1.25;font-weight:700;margin:0 0 6px;text-wrap:balance;letter-spacing:-.02em}
 h2{font-size:16px;font-weight:600;margin:26px 0 10px;letter-spacing:-.01em}
 h2:first-of-type{margin-top:20px}
+h3{font-size:14.5px;font-weight:600;margin:0 0 6px}
 p{margin:0 0 12px;color:var(--muted)}
 p.lead{color:var(--ink)}
 .step{display:none}.step.on{display:block}
@@ -91,14 +91,12 @@ p.lead{color:var(--ink)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:380px){.grid2{grid-template-columns:1fr}}
 
-label{display:block;font-size:12.5px;font-weight:500;color:var(--muted);
-  margin:0 0 6px;letter-spacing:.01em}
+label{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin:0 0 6px}
 input,select{width:100%;background:var(--sunk);border:1px solid var(--line);color:var(--ink);
   border-radius:10px;padding:12px 13px;font-size:16px;font-family:var(--font-num);
   font-weight:500;outline:none;min-width:0}
 select{font-family:var(--font-ui);font-weight:400}
-input:focus-visible,select:focus-visible{border-color:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-soft)}
+input:focus-visible,select:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .field+.field{margin-top:14px}
 .unit{position:relative}
 .unit span{position:absolute;right:13px;top:50%;transform:translateY(-50%);
@@ -108,11 +106,11 @@ button{font-family:var(--font-ui);font-size:15px;font-weight:600;border-radius:1
   padding:13px 18px;border:1px solid transparent;cursor:pointer;background:var(--accent);
   color:var(--accent-ink);line-height:1.2}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button.wide{display:block;width:100%;margin-top:18px}
+button.wide{display:block;width:100%;margin-top:16px}
 button.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
 button.sm{font-size:13.5px;padding:9px 14px;border-radius:9px}
 button[disabled]{opacity:.45;cursor:not-allowed}
-.btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
 .btnrow button{flex:1 1 auto;min-width:0}
 
 .chk{display:flex;gap:11px;align-items:flex-start;margin:0 0 14px;cursor:pointer}
@@ -127,13 +125,34 @@ button[disabled]{opacity:.45;cursor:not-allowed}
 .note.bad{border-left-color:var(--bad)}
 .note ul{margin:7px 0 0;padding-left:17px}
 .note li{margin:3px 0}
-
 .err{color:var(--bad);font-size:13px;margin-top:8px;font-weight:500}
 
+/* ---- kateqoriya şəbəkəsi ---- */
+.catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:420px){.catgrid{grid-template-columns:repeat(2,1fr)}}
+.cat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px 11px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
+  color:inherit;font-weight:400;text-align:center}
+.cat.done{border-color:var(--accent);background:var(--accent-soft)}
+.cat svg{width:100%;height:auto;max-height:74px}
+.cat .nm{font-size:12.5px;font-weight:500;line-height:1.25}
+.cat .sz{font-family:var(--font-num);font-size:12px;font-weight:600;color:var(--accent)}
+.cat .sz.empty{color:var(--muted);font-weight:400;font-family:var(--font-ui)}
+
+/* ---- texniki rəsm ---- */
+.artbox{background:var(--sunk);border:1px solid var(--line);border-radius:14px;padding:10px 6px 4px}
+.artbox svg{width:100%;height:auto;display:block;max-height:340px}
+.legend{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.leg{display:flex;align-items:center;gap:10px;font-size:13px}
+.leg .k{flex:0 0 22px;height:22px;border-radius:6px;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px}
+.leg .t{flex:1 1 auto;min-width:0}
+.leg .v{font-family:var(--font-num);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+
 /* ---- bədən sxemi ---- */
-#figbox{background:var(--sunk);border:1px solid var(--line);border-radius:14px;
+#figbox,.figbox{background:var(--sunk);border:1px solid var(--line);border-radius:14px;
   padding:6px 0 2px;overflow:hidden}
-#figbox svg{width:100%;height:auto;display:block}
+#figbox svg,.figbox svg{width:100%;height:auto;display:block}
 .mk{cursor:pointer}
 .chips{display:flex;gap:7px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -143,34 +162,43 @@ button[disabled]{opacity:.45;cursor:not-allowed}
 .chip i{width:8px;height:8px;border-radius:99px;flex:0 0 8px}
 .chip.on{color:var(--ink);background:var(--accent-soft);border-color:var(--accent)}
 
-/* ---- ölçü siyahısı ---- */
+/* ---- başlanğıc / son izahı ---- */
+.ends{display:flex;flex-direction:column;gap:9px;background:var(--sunk);border-radius:11px;
+  padding:12px 13px;margin:12px 0}
+.end{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
+.end .n{flex:0 0 20px;height:20px;border-radius:99px;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:var(--accent-ink);margin-top:1px}
+
+/* ---- ölçü sətri ---- */
 .mlist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.mitem{background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.mitem{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);
+  border-radius:13px;overflow:hidden}
 .mitem.sel{border-color:var(--accent)}
-.mhead{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;width:100%;
+.mhead{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:11px;padding:13px 15px;
   background:none;border:0;color:inherit;font-weight:400;font-size:15px;text-align:left;border-radius:0}
 .dot{width:9px;height:9px;border-radius:99px;flex:0 0 9px}
 .mname{flex:1 1 auto;min-width:0;font-weight:500}
 .mval{font-family:var(--font-num);font-weight:600;font-variant-numeric:tabular-nums;
   font-size:15px;white-space:nowrap}
+.edit{flex:0 0 auto;background:none;border:0;border-left:1px solid var(--line);border-radius:0;
+  color:var(--accent);font-size:13.5px;font-weight:600;padding:0 15px}
+.erow{display:flex;gap:8px;padding:12px 14px;align-items:center;width:100%}
+.erow .unit{flex:1 1 auto;min-width:0}
 .badge{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.badge.ok{color:var(--ok);border-color:var(--ok)}
 .badge.fix{color:var(--accent);border-color:var(--accent)}
-.mbody{padding:0 15px 15px;border-top:1px solid var(--line);margin-top:0}
-.yol{background:var(--sunk);border-radius:10px;padding:11px 13px;margin:13px 0 11px;
-  font-size:13px;color:var(--ink);line-height:1.5}
-.mbody p{font-size:13.5px;margin-bottom:10px}
-.tag{display:inline-block;font-size:11.5px;padding:4px 10px;border-radius:99px;
-  background:var(--sunk);color:var(--muted)}
-.editrow{display:flex;gap:9px;margin-top:13px;align-items:stretch}
-.editrow .unit{flex:1 1 auto;min-width:0}
-.editrow button{flex:0 0 auto}
 
-.progress{display:flex;align-items:center;gap:12px;margin:14px 0 0;
-  background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px}
-.progress .n{font-family:var(--font-num);font-weight:600;font-size:18px;white-space:nowrap}
-.progress .t{flex:1 1 auto;min-width:0;font-size:13px;color:var(--muted);line-height:1.4}
+/* ---- oturum şkalası ---- */
+.fitscale{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--sunk)}
+.fitscale button{flex:1 1 0;min-width:0;background:none;border:0;border-radius:0;padding:10px 2px;
+  font-size:11.5px;font-weight:500;color:var(--muted);border-right:1px solid var(--line);line-height:1.25}
+.fitscale button:last-child{border-right:0}
+.fitscale button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.fitends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
+.gout{margin-top:12px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;
+  font-size:13px;line-height:1.5}
+.gout b{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.gout.dim{background:var(--sunk);color:var(--muted)}
 
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
@@ -179,64 +207,30 @@ td.n,th.n{text-align:right;font-family:var(--font-num);font-variant-numeric:tabu
 tr.hl td{background:var(--accent-soft);font-weight:600}
 .scroll{overflow-x:auto}
 
-.verdict{border-radius:13px;padding:15px;border:1px solid var(--line);background:var(--card)}
-.verdict .big{font-family:var(--font-num);font-size:34px;font-weight:600;letter-spacing:-.02em;
-  line-height:1.1;margin-bottom:4px}
-.verdict.good{border-color:var(--ok)}
-.verdict.good .big{color:var(--ok)}
-.verdict.mid{border-color:var(--warn)}
-.verdict.mid .big{color:var(--warn)}
-.verdict.off{border-color:var(--bad)}
-.verdict.off .big{color:var(--bad)}
-.verdict p{margin:8px 0 0;font-size:13.5px}
+/* ---- izah ekranı ---- */
+.hero{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 20px;
+  text-align:center}
+.hero h2{font-size:21px;margin:14px 0 10px;letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
+.hero p{font-size:14.5px;line-height:1.6;max-width:30em;margin:0 auto 10px}
+.hero .kick{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 
-.sizecard{text-align:center;padding:22px 16px}
-.sizecard .big{font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1;
-  font-family:var(--font-ui)}
-.sizecard .sub{font-size:13px;color:var(--muted);margin-top:8px}
+/* ---- ölçülərim şəbəkəsi ---- */
+.mygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.mycard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;
+  display:flex;gap:11px;align-items:center}
+.mycard.empty{opacity:.55}
+.mycard svg{flex:0 0 52px;width:52px;height:auto}
+.mycard .tx{flex:1 1 auto;min-width:0}
+.mycard .nm{font-size:12.5px;color:var(--muted);line-height:1.3}
+.mycard .sz{font-family:var(--font-num);font-size:17px;font-weight:700;letter-spacing:-.02em;
+  line-height:1.25;margin-top:2px}
+.mycard .sub{font-family:var(--font-num);font-size:11.5px;color:var(--muted);margin-top:1px}
 
 .pass{font-family:var(--font-num);font-size:12.5px;line-height:1.7;background:var(--sunk);
   border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;
   white-space:pre;color:var(--muted)}
-
 .foot{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);
   font-size:12px;color:var(--muted);line-height:1.6}
-/* ---- geyim kartları ---- */
-.opt{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 9px;
-  margin-left:8px;vertical-align:middle}
-.gcard{background:var(--card);border:1px solid var(--line);border-radius:13px;
-  padding:14px;margin-bottom:10px}
-.ghead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.ghead b{flex:1 1 auto;min-width:0;font-size:15px}
-.ghead .x{background:none;border:0;color:var(--muted);font-size:22px;line-height:1;
-  padding:2px 6px;border-radius:8px}
-.fitscale{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;
-  background:var(--sunk)}
-.fitscale button{flex:1 1 0;min-width:0;background:none;border:0;border-radius:0;
-  padding:10px 2px;font-size:11.5px;font-weight:500;color:var(--muted);
-  border-right:1px solid var(--line);line-height:1.25}
-.fitscale button:last-child{border-right:0}
-.fitscale button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
-.fitends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
-  margin-top:5px}
-.gout{margin-top:12px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;
-  font-size:13px;line-height:1.5}
-.gout b{font-family:var(--font-num);font-variant-numeric:tabular-nums}
-.gout.dim{background:var(--sunk);color:var(--muted)}
-.gcm{margin-top:12px;padding-top:13px;border-top:1px solid var(--line)}
-.gpick{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
-.gpick .lbl{width:100%;font-size:12px;color:var(--muted);margin-top:4px;
-  letter-spacing:.04em;text-transform:uppercase}
-
-/* ---- ölçü sətri ---- */
-.mitem{display:flex;align-items:stretch;gap:0}
-.mitem .mhead{flex:1 1 auto;min-width:0}
-.edit{flex:0 0 auto;background:none;border:0;border-left:1px solid var(--line);
-  border-radius:0;color:var(--accent);font-size:13.5px;font-weight:600;padding:0 15px}
-.erow{display:flex;gap:8px;padding:12px 14px;align-items:center}
-.erow .unit{flex:1 1 auto;min-width:0}
-#detail:empty{display:none}
 
 /* ---- kamera (foto kontekst: rənglər hər iki temada eynidir) ---- */
 #cam{position:fixed;inset:0;z-index:50;background:#000;display:none}
@@ -271,10 +265,10 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
   <div class="bar"><i class="on"></i><i></i><i></i><i></i></div>
 </div>
 
-<!-- ══════════ 1 ══════════ -->
+<!-- ══════════ 1 — SƏN ══════════ -->
 <section class="step on" id="s1">
   <h1>Bir dəfə doldur, hər alışda ölçü seçmə</h1>
-  <p class="lead">Boyunu və çəkini yaz — sistem bədən ölçülərini hesablayacaq. Sonra hər ölçünü özün təsdiqləyib və ya düzəldib bitirəcəksən.</p>
+  <p class="lead">Boyunu və çəkini yaz — sistem bədən ölçülərini hesablayacaq. Sonra almaq istədiyin geyim növünü seçirsən.</p>
 
   <div class="card">
     <div class="field">
@@ -295,7 +289,7 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
     <ul>
       <li>Ölçülərin satıcıya ötürülmür və profilində görünmür.</li>
       <li>İstədiyin vaxt tam silə bilərsən.</li>
-      <li>Bu səhifə heç nəyi serverə göndərmir — hesablama telefonunda aparılır.</li>
+      <li>Hesablama telefonunda aparılır, şəkil heç yerə göndərilmir.</li>
     </ul>
   </div>
 
@@ -304,10 +298,98 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
   <label class="chk"><input type="checkbox" id="c-ok">
     <span>Ölçülərimin hesablanması və hesabımda saxlanması ilə razıyam.</span></label>
 
-  <button class="wide" id="go2" disabled>Ölçüləri hesabla</button>
+  <button class="wide" id="go2" disabled>Davam et</button>
   <button class="ghost wide" id="goscan" disabled style="margin-top:9px">Kamera ilə skan et — daha dəqiq</button>
   <div id="e-cam" class="err" hidden></div>
 </section>
+
+<!-- ══════════ 2 — KATEQORİYA ══════════ -->
+<section class="step" id="s2">
+  <h1>Nə almaq istəyirsən?</h1>
+  <p>Geyim növünü seç — yalnız həmin geyimə aid ölçülər açılacaq. İstədiyin qədər kateqoriya doldura bilərsən.</p>
+  <div class="catgrid" id="catgrid"></div>
+  <div class="btnrow">
+    <button class="ghost" id="back1">Geri</button>
+    <button id="go4">Ölçülərimə bax</button>
+  </div>
+</section>
+
+<!-- ══════════ 3 — KATEQORİYA DETALI ══════════ -->
+<section class="step" id="s3">
+  <h1 id="c-title">—</h1>
+  <p id="c-sub"></p>
+
+  <h2>Geyim harada ölçülür</h2>
+  <div class="artbox" id="c-art"></div>
+  <div class="legend" id="c-leg"></div>
+
+  <h2>Bədənində hansı nöqtələr</h2>
+  <div class="figbox" id="c-fig"></div>
+  <div class="chips" id="c-chips"></div>
+  <div id="c-ends"></div>
+
+  <h2>Hesablanmış ölçülərin</h2>
+  <div class="mlist" id="c-mlist"></div>
+
+  <h2>Hazırkı ölçün</h2>
+  <div id="c-own"></div>
+
+  <div class="btnrow">
+    <button class="ghost" id="back2">Kateqoriyalar</button>
+    <button id="c-save">Təsdiq et və saxla</button>
+  </div>
+</section>
+
+<!-- ══════════ İZAH EKRANI ══════════ -->
+<section class="step" id="sInfo">
+  <div class="hero">
+    <div class="kick">Hazırkı ölçün</div>
+    <h2>Ölçünü bir dəfə ver, bir daha fikirləşmə</h2>
+    <p>Hansı markada hansı nömrə geyindiyini yaz. Bundan sonra hər məhsulda sənə uyğun ölçü özü seçili gələcək.</p>
+    <p style="color:var(--ink);font-weight:600">S, M, L arasında tərəddüd bitir.</p>
+  </div>
+  <div class="note">
+    <b>Üç şey bilməyin yaxşıdır</b>
+    <ul>
+      <li>Doldurmaq məcburi deyil — boş qoysan da proqram işləyir.</li>
+      <li>Hər əlavə etdiyin geyim tövsiyənin dəqiqliyini artırır.</li>
+      <li>Bu məlumat satıcıya getmir, yalnız sənin ölçünü hesablamaq üçündür.</li>
+    </ul>
+  </div>
+  <button class="wide" id="info-go">Başlayaq</button>
+  <button class="ghost wide" id="info-skip" style="margin-top:9px">İndi yox</button>
+</section>
+
+<!-- ══════════ 4 — ÖLÇÜLƏRİM ══════════ -->
+<section class="step" id="s4">
+  <h1>Ölçülərim</h1>
+  <p id="m-sub"></p>
+
+  <div class="mygrid" id="mygrid"></div>
+
+  <h2>Bədən ölçülərin</h2>
+  <div class="figbox" id="m-fig"></div>
+  <div class="scroll" style="margin-top:12px"><table>
+    <thead><tr><th>Ölçü</th><th class="n">Dəyər</th><th>Dəqiqlik</th></tr></thead>
+    <tbody id="m-tbl"></tbody>
+  </table></div>
+
+  <h2>Saxlanılan qeyd</h2>
+  <p style="font-size:13px">Real platformada serverə yalnız bu sətirlər gedir — şəkil, ad və üz məlumatı yox.</p>
+  <div class="pass" id="payload"></div>
+
+  <div class="btnrow">
+    <button class="ghost" id="back3">Kateqoriyalar</button>
+    <button id="restart">Yenidən başla</button>
+  </div>
+
+  <div class="foot">
+    Hesablama boy, çəki, əlavə etdiyin geyimlər və sənin düzəlişlərinə əsaslanır.
+    Təsdiqlənməmiş ölçülərdə ± 4 sm sapma gözləniləndir — tövsiyə qəti hökm deyil, ehtimaldır.
+  </div>
+</section>
+
+</div>
 
 <!-- ══════════ kamera ══════════ -->
 <div id="cam" role="dialog" aria-label="Kamera ilə ölçmə">
@@ -321,119 +403,6 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
   <div id="camhud"><div id="hint" class="bad">Kamera hazırlanır…</div></div>
 </div>
 
-<!-- ══════════ 2 ══════════ -->
-<section class="step" id="s2">
-  <h1>Ölçülərin</h1>
-  <p>Sxem sənin öz rəqəmlərinə görə çəkilib. Ölçünün adına toxun — bədənin harasına aid olduğunu göstərəcək. Rəqəmi dəyişmək üçün «Dəyiş».</p>
-
-  <div id="figbox"></div>
-  <div class="chips" id="chips"></div>
-  <div id="srcnote"></div>
-
-  <h2>Hazırda geyindiyin geyimlər<span class="opt">könüllü</span></h2>
-  <p>Hər əlavə etdiyin geyim ölçünü bir az da dəqiqləşdirir. Heç nə yazmasan da proqram işləyir.</p>
-  <div id="garments"></div>
-  <div class="gpick" id="gpick" hidden></div>
-  <button class="ghost wide sm" id="addg">+ Geyim əlavə et</button>
-
-  <h2>Ölçülər</h2>
-  <div class="mlist" id="mlist"></div>
-  <div id="detail"></div>
-
-  <div class="btnrow">
-    <button class="ghost" id="back1">Geri</button>
-    <button id="go3">Təsdiq et və ayaqqabıya keç</button>
-  </div>
-</section>
-
-<!-- ══════════ 3 ══════════ -->
-<section class="step" id="s3">
-  <h1>Ayaqqabı ölçüsü</h1>
-  <p>Ayaq uzunluğu boydan proqnozlaşdırılır və ən çox səhv edən ölçüdür. Öz nömrəni yaz — sistem fərqi göstərsin.</p>
-
-  <div class="card">
-    <div class="field">
-      <label for="f-eu">Adətən hansı nömrə geyinirsən? (EU)</label>
-      <div class="unit"><input id="f-eu" type="number" inputmode="decimal" step="0.5" min="33" max="50" placeholder="məs. 42"><span>EU</span></div>
-    </div>
-    <div class="field">
-      <label for="f-flen">Ayağını ölçmüsənsə, uzunluğu yaz</label>
-      <div class="unit"><input id="f-flen" type="number" inputmode="decimal" step="0.1" min="18" max="35" placeholder="boş qoya bilərsən"><span>sm</span></div>
-    </div>
-    <div class="field">
-      <label for="f-width">Ayağının eni</label>
-      <select id="f-width">
-        <option value="n">Normal</option>
-        <option value="d">Dar — ayaqqabı adətən boş gəlir</option>
-        <option value="e">Enli — ayaqqabı yanlardan sıxır</option>
-      </select>
-    </div>
-    <div id="e3" class="err" hidden></div>
-    <button class="wide" id="cmp">Müqayisə et</button>
-  </div>
-
-  <div class="note">
-    <b>Ayağı 1 dəqiqəyə necə ölçürsən</b>
-    <ul>
-      <li>Kağızı divara söykə, dabanın divara dəysin, kağızın üstündə dayan.</li>
-      <li>Ən uzun barmağın ucunu qələmlə işarələ (bu, həmişə baş barmaq olmur).</li>
-      <li>Divardan işarəyə qədər olan məsafəni ölç.</li>
-      <li>Axşam ölç — gün ərzində ayaq 2–4 % böyüyür. İki ayağı da ölç, böyüyünü götür.</li>
-    </ul>
-  </div>
-
-  <div id="cmpout"></div>
-
-  <h2>Uzunluğa görə nömrə cədvəli</h2>
-  <div class="scroll"><table>
-    <thead><tr><th>Ayaq</th><th class="n">EU</th><th class="n">UK</th><th class="n">US kişi</th><th class="n">US qadın</th></tr></thead>
-    <tbody id="shoetbl"></tbody>
-  </table></div>
-  <p style="font-size:12.5px;margin-top:10px">Cədvəl qəlib payını (təxminən 1,3 sm) nəzərə alır. Markalar arasında yarım nömrəyə qədər fərq normaldır.</p>
-
-  <div class="btnrow">
-    <button class="ghost" id="back2">Geri</button>
-    <button id="go4">Pasportu tamamla</button>
-  </div>
-</section>
-
-<!-- ══════════ 4 ══════════ -->
-<section class="step" id="s4">
-  <h1>Ölçü pasportun hazırdır</h1>
-  <p>Bundan sonra məhsul səhifəsində ölçü seçimi avtomatik təklif olunacaq.</p>
-
-  <div class="card sizecard">
-    <div class="big" id="r-size">—</div>
-    <div class="sub" id="r-sub"></div>
-  </div>
-  <div id="r-fit"></div>
-
-  <h2>Təsdiqlənmiş ölçülər</h2>
-  <div class="scroll"><table>
-    <thead><tr><th>Ölçü</th><th class="n">Dəyər</th><th>Mənbə</th></tr></thead>
-    <tbody id="finaltbl"></tbody>
-  </table></div>
-
-  <h2>Ayaqqabı</h2>
-  <div id="finalshoe"></div>
-
-  <h2>Saxlanılan qeyd</h2>
-  <p style="font-size:13px">Real platformada serverə yalnız bu sətirlər gedir — şəkil, ad və üz məlumatı yox.</p>
-  <div class="pass" id="payload"></div>
-
-  <div class="btnrow">
-    <button class="ghost" id="back3">Ölçülərə qayıt</button>
-    <button id="restart">Yenidən başla</button>
-  </div>
-
-  <div class="foot">
-    Hesablama boy, çəki və sənin düzəlişlərinə əsaslanır. Təsdiqlənməmiş ölçülərdə ± 4 sm sapma gözləniləndir —
-    ona görə tövsiyə qəti hökm deyil, ehtimaldır.
-  </div>
-</section>
-
-</div>
-
 <script>
 /* ═══════════════════════════════════════════════════════════
    Ölçü Pasportu — CinarMall
@@ -442,8 +411,9 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
 
 const $ = id => document.getElementById(id);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const r1 = v => Math.round(v*10)/10;
 
-/* ── antropometrik əmsallar (yerli data ilə kalibrasiya olunmalıdır) ── */
+/* ═════ antropometrik əmsallar (yerli data ilə kalibrasiya olunmalıdır) ═════ */
 const PRIOR = {
   m:{ chest:[0.34,1.30, 8], waist:[0.15,2.30, 4], hip:[0.25,1.90, 8] },
   f:{ chest:[0.25,1.60,12], waist:[0.12,2.10, 4], hip:[0.26,1.85,12] }
@@ -452,74 +422,91 @@ const RATIO = {
   m:{ shoulder:0.235, sleeve:0.345, inseam:0.450, foot:0.152 },
   f:{ shoulder:0.222, sleeve:0.335, inseam:0.455, foot:0.150 }
 };
+const UNDER = { m:0.900, f:0.845 };          // döşaltı ÷ döş
 const DEPTH = { m:{chest:0.72,waist:0.78,hip:0.74}, f:{chest:0.75,waist:0.75,hip:0.72} };
 const DEPTH_BMI = 0.006;
 const SHAPE = { chest:1.02, waist:1.00, hip:1.01 };
 
-/* ── nümunə ölçü cədvəli (real sistemdə hər SKU üçün bazadan gəlir) ── */
-const CHART = {
-  ad:"Toxunmuş köynək",
-  ease:{ chest:{min:6,ideal:11,max:18}, waist:{min:4,ideal:12,max:22}, shoulder:{min:0,ideal:1.5,max:4} },
-  sizes:[
-    {size:"S",  chest: 96, waist: 88, shoulder:42},
-    {size:"M",  chest:102, waist: 94, shoulder:44},
-    {size:"L",  chest:108, waist:100, shoulder:46},
-    {size:"XL", chest:114, waist:106, shoulder:48},
-    {size:"XXL",chest:120, waist:112, shoulder:50}
-  ]
-};
-
-/* ── ölçü lüğəti ── */
+/* ═════ bədən ölçüləri — başlanğıc və son nöqtələr ═════ */
 const MEAS = {
-  shoulder:{ qisa:'Çiyin', ad:'Çiyin eni', v:'--m-shoulder',
-    yol:'Sol çiyin sümüyünün kənarı → sağ çiyin sümüyünün kənarı',
-    izah:'Kürəyin üstündən düz xətt üzrə keçir, çiyindən aşağı enmir.',
-    geyim:'Pencək və köynəyin çiyin tikişi' },
-  chest:{ qisa:'Döş', ad:'Döş çevrəsi', v:'--m-chest',
-    yol:'Döşün ən qabarıq nöqtəsi → bədəni dolanıb eyni nöqtəyə qayıdır',
-    izah:'Lent yerə paralel olmalı, nə dartılmalı, nə də boş qalmalıdır.',
-    geyim:'Köynək, sviter, pencək — üst geyimin əsas ölçüsü' },
-  waist:{ qisa:'Bel', ad:'Bel çevrəsi', v:'--m-waist',
-    yol:'Belin ən dar yeri → bədəni dolanıb eyni nöqtəyə qayıdır',
-    izah:'Qabırğaların altı ilə göbək arasından keçir. Nəfəsi içəri çəkmədən ölçülür.',
-    geyim:'Şalvar, ətək, kəmər' },
-  hip:{ qisa:'Omba', ad:'Omba çevrəsi', v:'--m-hip',
-    yol:'Ombanın ən geniş nöqtəsi → bədəni dolanıb eyni nöqtəyə qayıdır',
-    izah:'Adətən bel xəttindən 18–22 sm aşağıdadır. Ayaqlar bitişik vəziyyətdə ölçülür.',
-    geyim:'Şalvar, ətək, uzun geyimin alt hissəsi' },
-  sleeve:{ qisa:'Qol', ad:'Qol uzunluğu', v:'--m-sleeve',
-    yol:'Çiyin nöqtəsi → dirsək → bilək sümüyü',
-    izah:'Qolun xarici tərəfi ilə ölçülür, qol azca bükülü vəziyyətdə.',
-    geyim:'Uzunqol köynək, pencək, gödəkçə' },
-  inseam:{ qisa:'Paça', ad:'İç paça', v:'--m-inseam',
-    yol:'Addım yeri (çatal) → ayaq biləyi',
-    izah:'Ayağın iç tərəfi ilə ölçülür. Şalvarın iç tikişinin uzunluğudur, ümumi uzunluq deyil.',
-    geyim:'Şalvar və cins şalvarın uzunluğu' },
-  foot:{ qisa:'Ayaq', ad:'Ayaq uzunluğu', v:'--m-foot',
-    yol:'Dabanın ən arxa nöqtəsi → ən uzun barmağın ucu',
-    izah:'Kağız üzərində dayanıb iki nöqtəni işarələmək ən dəqiq üsuldur.',
-    geyim:'Ayaqqabı nömrəsi — markadan asılı olmayan yeganə dəqiq göstərici' }
+  shoulder:{ qisa:'Çiyin', ad:'Çiyin eni', v:'--m-shoulder', tip:'xett',
+    a:'Sol akromion — çiyin sümüyünün ən kənar nöqtəsi, qolun başladığı yer',
+    b:'Sağ akromion — qarşı tərəfdəki eyni nöqtə',
+    yol:'Kürəyin üstündən düz xətt üzrə keçir, çiyindən aşağı enmir.' },
+  chest:{ qisa:'Döş', ad:'Döş çevrəsi', v:'--m-chest', tip:'cevre',
+    a:'Döşün ən qabarıq nöqtəsi — kişidə döş əzələsinin, qadında büstün zirvəsi',
+    b:'Bədəni dolanıb eyni nöqtəyə qayıdır',
+    yol:'Lent yerə paralel olmalı, nə dartılmalı, nə də boş qalmalıdır.' },
+  underbust:{ qisa:'Döşaltı', ad:'Döşaltı çevrəsi', v:'--m-underbust', tip:'cevre',
+    a:'Döşün dərhal altından, qabırğa qəfəsinə söykənən xətt',
+    b:'Bədəni dolanıb eyni nöqtəyə qayıdır',
+    yol:'Lifçiyin kəmər nömrəsini bu ölçü təyin edir. Nəfəsi buraxıb ölçülür.' },
+  waist:{ qisa:'Bel', ad:'Bel çevrəsi', v:'--m-waist', tip:'cevre',
+    a:'Belin ən dar yeri — ən aşağı qabırğa ilə çanaq sümüyünün arası',
+    b:'Bədəni dolanıb eyni nöqtəyə qayıdır',
+    yol:'Nəfəsi içəri çəkmədən, normal duruşda ölçülür.' },
+  hip:{ qisa:'Omba', ad:'Omba çevrəsi', v:'--m-hip', tip:'cevre',
+    a:'Ombanın ən geniş nöqtəsi — bel xəttindən 18–22 sm aşağı',
+    b:'Bədəni dolanıb eyni nöqtəyə qayıdır',
+    yol:'Ayaqlar bitişik vəziyyətdə ölçülür.' },
+  sleeve:{ qisa:'Qol', ad:'Qol uzunluğu', v:'--m-sleeve', tip:'xett',
+    a:'Akromion — çiyin tikişinin oturduğu nöqtə, qol ölçüsü məhz buradan başlayır',
+    b:'Bilək sümüyünün çıxıntısı — əl darağının başladığı yer',
+    yol:'Qolun xarici tərəfi ilə, dirsəkdən keçərək. Qol azca bükülü olmalıdır.' },
+  inseam:{ qisa:'Paça', ad:'İç paça', v:'--m-inseam', tip:'xett',
+    a:'Addım yeri — çatal, iki ayağın birləşdiyi nöqtə',
+    b:'Ayaq biləyinin daxili sümüyü',
+    yol:'Şalvarın iç tikişinin uzunluğudur, ümumi uzunluq deyil.' },
+  foot:{ qisa:'Ayaq', ad:'Ayaq uzunluğu', v:'--m-foot', tip:'xett',
+    a:'Dabanın ən arxa nöqtəsi — divara söykənən yer',
+    b:'Ən uzun barmağın ucu (bu, həmişə baş barmaq olmur)',
+    yol:'Kağız üzərində dayanıb iki nöqtəni işarələmək ən dəqiq üsuldur.' }
 };
-const ORDER = ['shoulder','chest','waist','hip','sleeve','inseam','foot'];
+const ORDER = ['shoulder','chest','underbust','waist','hip','sleeve','inseam','foot'];
 
-/* ═══════════ geyim ölçü sistemləri ═══════════
-   Hamısı "EU bazası"na çevrilir, oradan bədən ölçüsünə.
-   Çevirmələr yaxınlaşmadır — markalar arasında fərq normaldır.     */
+/* ═════ 12 kateqoriya ═════ */
+const CATS = {
+  mayka:   {ad:'Mayka / köynək', qisa:'Mayka',   cins:'hm', sys:'ust',
+            body:['chest','shoulder','sleeve'], ease:{chest:9,shoulder:1.2}},
+  jiletka: {ad:'Jiletka / sviter', qisa:'Sviter', cins:'hm', sys:'ust',
+            body:['chest','shoulder','sleeve'], ease:{chest:11,shoulder:1.8}},
+  kostyum: {ad:'Kostyum / pencək', qisa:'Pencək', cins:'hm', sys:'ust',
+            body:['chest','shoulder','sleeve','waist'], ease:{chest:14,shoulder:2.2,waist:12}},
+  kurtka:  {ad:'Kurtka / palto', qisa:'Kurtka',  cins:'hm', sys:'ust',
+            body:['chest','shoulder','sleeve'], ease:{chest:18,shoulder:3}},
+  idman:   {ad:'İdman geyimi', qisa:'İdman',     cins:'hm', sys:'ust',
+            body:['chest','shoulder','sleeve','waist'], ease:{chest:14,shoulder:2.5,waist:10}},
+  don:     {ad:'Don', qisa:'Don',                cins:'f',  sys:'ust',
+            body:['chest','waist','hip'], ease:{chest:8,waist:6,hip:6}},
+  salvar:  {ad:'Şalvar', qisa:'Şalvar',          cins:'hm', sys:'alt',
+            body:['waist','hip','inseam'], ease:{waist:3,hip:6}},
+  sort:    {ad:'Şort', qisa:'Şort',              cins:'hm', sys:'alt',
+            body:['waist','hip'], ease:{waist:3,hip:7}},
+  etek:    {ad:'Ətək', qisa:'Ətək',              cins:'f',  sys:'alt',
+            body:['waist','hip'], ease:{waist:2,hip:5}},
+  altpaltar:{ad:'Alt paltar', qisa:'Alt paltar', cins:'hm', sys:'ic',
+            body:['underbust','chest','waist','hip'], ease:{}},
+  corab:   {ad:'Corab', qisa:'Corab',            cins:'hm', sys:'corab',
+            body:['foot'], ease:{}},
+  ayaqqabi:{ad:'Ayaqqabı', qisa:'Ayaqqabı',      cins:'hm', sys:'ayaqqabi',
+            body:['foot'], ease:{}}
+};
+const CAT_ORDER = ['mayka','jiletka','kostyum','kurtka','idman','don',
+                   'salvar','sort','etek','altpaltar','corab','ayaqqabi'];
+
+/* ═════ dünya üzrə ölçü sistemləri ═════ */
 const SYSTEMS = {
   ust:[
-    {id:'intl', ad:'Beynəlxalq (S / M / L)',
-     opts:()=>['XS','S','M','L','XL','XXL','3XL'],
+    {id:'intl', ad:'Beynəlxalq (S / M / L)', opts:()=>['XS','S','M','L','XL','XXL','3XL'],
      eu:(v,x)=>({m:{XS:41,S:45,M:48,L:51,XL:54,XXL:57,'3XL':60},
                  f:{XS:34,S:36,M:38,L:41,XL:44,XXL:47,'3XL':50}})[x][v]},
     {id:'eu', ad:'EU / Türkiyə / Almaniya',
-     opts:x=> x==='m'?[44,46,48,50,52,54,56,58,60]:[32,34,36,38,40,42,44,46,48,50],
-     eu:v=>+v},
+     opts:x=> x==='m'?[44,46,48,50,52,54,56,58,60]:[32,34,36,38,40,42,44,46,48,50], eu:v=>+v},
     {id:'it', ad:'İtaliya',
      opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[36,38,40,42,44,46,48,50,52,54],
      eu:(v,x)=>+v-(x==='m'?2:4)},
     {id:'fr', ad:'Fransa',
-     opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[34,36,38,40,42,44,46,48,50,52],
-     eu:v=>+v-2},
+     opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[34,36,38,40,42,44,46,48,50,52], eu:v=>+v-2},
     {id:'uk', ad:'Böyük Britaniya',
      opts:x=> x==='m'?[34,36,38,40,42,44,46,48]:[6,8,10,12,14,16,18,20,22,24],
      eu:(v,x)=> x==='m' ? ((+v*2.54)-4)/2 : +v+28},
@@ -528,16 +515,17 @@ const SYSTEMS = {
      eu:(v,x)=> x==='m' ? ((+v*2.54)-4)/2 : +v+32},
     {id:'ru', ad:'Rusiya / MDB',
      opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[40,42,44,46,48,50,52,54,56,58],
-     eu:(v,x)=>+v-(x==='m'?2:8)}
+     eu:(v,x)=>+v-(x==='m'?2:8)},
+    {id:'jp', ad:'Yaponiya / Asiya',
+     opts:x=> x==='m'?['S','M','L','LL','3L']:[5,7,9,11,13,15,17],
+     eu:(v,x)=> x==='m' ? ({S:44,M:47,L:50,LL:53,'3L':56})[v] : +v+27}
   ],
   alt:[
-    {id:'intl', ad:'Beynəlxalq (S / M / L)',
-     opts:()=>['XS','S','M','L','XL','XXL','3XL'],
+    {id:'intl', ad:'Beynəlxalq (S / M / L)', opts:()=>['XS','S','M','L','XL','XXL','3XL'],
      eu:(v,x)=>({m:{XS:44,S:47,M:50,L:53,XL:56,XXL:59,'3XL':62},
                  f:{XS:34,S:36,M:38,L:41,XL:44,XXL:47,'3XL':50}})[x][v]},
     {id:'eu', ad:'EU / Türkiyə / Almaniya',
-     opts:x=> x==='m'?[44,46,48,50,52,54,56,58,60]:[32,34,36,38,40,42,44,46,48,50],
-     eu:v=>+v},
+     opts:x=> x==='m'?[44,46,48,50,52,54,56,58,60]:[32,34,36,38,40,42,44,46,48,50], eu:v=>+v},
     {id:'jeans', ad:'Cins — bel inç (W)', direct:true,
      opts:x=> x==='m'?[28,29,30,31,32,33,34,36,38,40,42]:[24,25,26,27,28,29,30,31,32,34,36],
      band:v=>({lo:+v*2.54-0.5, hi:+v*2.54+4.5})},
@@ -545,138 +533,227 @@ const SYSTEMS = {
      opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[36,38,40,42,44,46,48,50,52,54],
      eu:(v,x)=>+v-(x==='m'?2:4)},
     {id:'fr', ad:'Fransa',
-     opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[34,36,38,40,42,44,46,48,50,52],
-     eu:v=>+v-2},
-    {id:'uk', ad:'Böyük Britaniya (qadın)',
-     opts:x=> x==='f'?[6,8,10,12,14,16,18,20,22,24]:null, eu:v=>+v+28},
-    {id:'us', ad:'ABŞ (qadın)',
-     opts:x=> x==='f'?[0,2,4,6,8,10,12,14,16,18,20]:null, eu:v=>+v+32},
+     opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[34,36,38,40,42,44,46,48,50,52], eu:v=>+v-2},
+    {id:'uk', ad:'Böyük Britaniya (qadın)', opts:x=> x==='f'?[6,8,10,12,14,16,18,20,22,24]:null,
+     eu:v=>+v+28},
+    {id:'us', ad:'ABŞ (qadın)', opts:x=> x==='f'?[0,2,4,6,8,10,12,14,16,18,20]:null,
+     eu:v=>+v+32},
     {id:'ru', ad:'Rusiya / MDB',
      opts:x=> x==='m'?[46,48,50,52,54,56,58,60,62]:[40,42,44,46,48,50,52,54,56,58],
      eu:(v,x)=>+v-(x==='m'?2:8)}
   ]
 };
-/* EU bazası → bədən ölçüsü aralığı (sm) */
 const EU2BODY = {
-  ust:{ m:eu=>({lo:2*eu+1,   hi:2*eu+7}),
-        f:eu=>({lo:2*eu+9.5, hi:2*eu+14.5}) },
-  alt:{ m:eu=>({lo:2*eu-17,  hi:2*eu-11}),
-        f:eu=>({lo:2*eu-6.5, hi:2*eu-1.5}) }
+  ust:{ m:eu=>({lo:2*eu+1,   hi:2*eu+7}),  f:eu=>({lo:2*eu+9.5, hi:2*eu+14.5}) },
+  alt:{ m:eu=>({lo:2*eu-17,  hi:2*eu-11}), f:eu=>({lo:2*eu-6.5, hi:2*eu-1.5}) }
 };
-
-/* oturum şkalası — seçim həm dəyəri, həm etibarı dəyişir */
 const FIT = [
-  {id:'t2', qisa:'Sıxır',  ad:'Çox dar',      pick:'hi+', d:+5,   w:0.25},
-  {id:'t1', qisa:'Dar',    ad:'Bir az dar',   pick:'hi',  d:+2,   w:0.40},
-  {id:'ok', qisa:'Tam',    ad:'Tam oturur',   pick:'mid', d:0,    w:0.50},
-  {id:'l1', qisa:'Bol',    ad:'Bir az bol',   pick:'lo',  d:-2.5, w:0.40},
-  {id:'l2', qisa:'Sallanır',ad:'Çox bol',     pick:'lo-', d:-6,   w:0.25}
+  {id:'t2', qisa:'Sıxır',   ad:'Çox dar',    pick:'hi+', d:+5,   w:0.25},
+  {id:'t1', qisa:'Dar',     ad:'Bir az dar', pick:'hi',  d:+2,   w:0.40},
+  {id:'ok', qisa:'Tam',     ad:'Tam oturur', pick:'mid', d:0,    w:0.50},
+  {id:'l1', qisa:'Bol',     ad:'Bir az bol', pick:'lo',  d:-2.5, w:0.40},
+  {id:'l2', qisa:'Sallanır',ad:'Çox bol',    pick:'lo-', d:-6,   w:0.25}
 ];
 
-/* geyim növləri: hansı bədən ölçüsünü göstərir, sərbəstlik payı, düz sərilmiş ölçülər */
-const FLAT = {
-  chest:['Döş eni — qoltuqaltından qoltuqaltına',2],
-  waist:['Bel eni — düz sərilmiş',2],
-  hip:['Omba eni — düz sərilmiş',2],
-  shoulder:['Çiyin eni — tikişdən tikişə',1],
-  sleeve:['Qol uzunluğu — çiyin tikişindən manjetə',1],
-  inseam:['İç paça — çatal tikişindən balağa',1]
+/* ═════ lifçik — kəmər və kasa ═════ */
+const CUPS = [
+  [10,'AA','AA','AA'],[12,'A','A','A'],[14,'B','B','B'],[16,'C','C','C'],
+  [18,'D','D','D'],[20,'E','DD','DD'],[22,'F','E','DDD'],[24,'G','F','G'],[26,'H','FF','H']
+];
+function braFrom(under, bust){
+  const eu = clamp(Math.round(under/5)*5, 60, 110);
+  const diff = Math.max(8, bust - under);
+  let row = CUPS[0];
+  for(const c of CUPS) if(diff >= c[0]) row = c;
+  const ukBand = Math.round(((eu-70)*0.4 + 32)/2)*2;
+  return { eu:eu+row[1], uk:ukBand+row[2], us:ukBand+row[3],
+           fr:(eu+15)+row[1], it:((eu-60)/5)+row[1], au:(ukBand-22)+row[2],
+           band:eu, cup:row[1], diff:r1(diff) };
+}
+function braToBody(euBand, cupLetter){
+  const under = euBand;
+  const idx = CUPS.findIndex(c=>c[1]===cupLetter);
+  const diff = idx<0 ? 14 : CUPS[idx][0] + 1;
+  return { underbust:under, chest:under + diff };
+}
+/* ═════ trusik / boxer ═════ */
+const IC_BANDS = {
+  f:[['XS',0,88],['S',88,94],['M',94,100],['L',100,106],['XL',106,112],['XXL',112,999]],
+  m:[['S',0,86],['M',86,94],['L',94,102],['XL',102,110],['XXL',110,999]]
 };
-const GARMENTS = {
-  futbolka:{ad:'Futbolka / T-shirt', grup:'ust', anchor:'chest',
-            ease:{chest:8,shoulder:1}, flat:['chest','shoulder']},
-  koynek:  {ad:'Köynək (klassik)',   grup:'ust', anchor:'chest',
-            ease:{chest:12,shoulder:1.5,sleeve:0}, flat:['chest','shoulder','sleeve']},
-  sviter:  {ad:'Sviter / jemper',    grup:'ust', anchor:'chest',
-            ease:{chest:10,sleeve:0}, flat:['chest','sleeve']},
-  pencek:  {ad:'Pencək / kostyum',   grup:'ust', anchor:'chest',
-            ease:{chest:14,shoulder:2,sleeve:0}, flat:['chest','shoulder','sleeve']},
-  palto:   {ad:'Palto / gödəkçə',    grup:'ust', anchor:'chest',
-            ease:{chest:18,shoulder:3}, flat:['chest','shoulder']},
-  don:     {ad:'Don',                grup:'ust', anchor:'chest',
-            ease:{chest:8,waist:6,hip:6}, flat:['chest','waist','hip']},
-  salvar:  {ad:'Şalvar (klassik)',   grup:'alt', anchor:'waist',
-            ease:{waist:3,hip:6,inseam:0}, flat:['waist','hip','inseam']},
-  cins:    {ad:'Cins şalvar',        grup:'alt', anchor:'waist',
-            ease:{waist:1,hip:4,inseam:0}, flat:['waist','hip','inseam']},
-  etek:    {ad:'Ətək',               grup:'alt', anchor:'waist',
-            ease:{waist:2,hip:5}, flat:['waist','hip']}
-};
+const icSize = (v,sex) => (IC_BANDS[sex].find(b=> v>=b[1] && v<b[2]) || IC_BANDS[sex][0])[0];
+const icBand = (lbl,sex) => { const b=IC_BANDS[sex].find(x=>x[0]===lbl);
+  return b ? {lo:Math.max(b[1],60), hi:Math.min(b[2],130)} : null; };
 
-/* ── vəziyyət ── */
+/* ═════ corab — ayaqqabı nömrəsindən ═════ */
+const SOCKS = [
+  {id:'S',  eu:'35–38', uk:'2½–5',   us:'3½–6',   lo:0,  hi:38.5},
+  {id:'M',  eu:'39–42', uk:'5½–8',   us:'6½–9',   lo:38.5, hi:42.5},
+  {id:'L',  eu:'43–46', uk:'8½–11',  us:'9½–12',  lo:42.5, hi:46.5},
+  {id:'XL', eu:'47–50', uk:'11½–14', us:'12½–15', lo:46.5, hi:99}
+];
+const sockFrom = euShoe => SOCKS.find(s=> euShoe>=s.lo && euShoe<s.hi) || SOCKS[1];
+
+/* ═════ ayaqqabı ═════ */
+const LAST_EASE = 1.3;
+function shoeFromLen(cm){
+  const eu = (cm + LAST_EASE) / 0.6667, uk = 3*(cm/2.54) - 23, r = x => Math.round(x*2)/2;
+  return { eu:r(eu), uk:r(uk), usM:r(uk+1), usW:r(uk+2.5) };
+}
+const lenFromEu = eu => eu*0.6667 - LAST_EASE;
+/* ═════════ GEYİM TEXNİKİ RƏSMLƏRİ (düz sərilmiş) ═════════
+   Hər rəsm: kontur + detal xətləri + hərfli ölçü işarələri.
+   mark: {k:hərf, key:bədən ölçüsü, t:'h'|'v'|'d', p:[x1,y1,x2,y2], ad:izah}   */
+const ART = {
+  mayka:{ vb:'0 0 212 200',
+    d:'M78 22 Q100 36 122 22 L141 29 L175 60 L155 82 L143 71 L143 178 Q100 185 57 178 L57 71 L45 82 L25 60 L59 29 Z',
+    det:['M78 22 Q100 32 122 22','M57 71 L45 82','M143 71 L155 82'],
+    marks:[{k:'A',key:'chest',t:'h',p:[57,90,143,90],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'shoulder',t:'h',p:[59,31,141,31],ad:'Çiyin eni — tikişdən tikişə'},
+           {k:'C',key:'sleeve',t:'d',p:[62,36,40,72],ad:'Qol uzunluğu — çiyin tikişindən manjetə'},
+           {k:'D',key:null,t:'v',p:[196,22,196,178],ad:'Ümumi uzunluq — yaxadan ətəyə'}]},
+
+  jiletka:{ vb:'0 0 212 212',
+    d:'M78 22 Q100 36 122 22 L143 30 L178 76 L160 114 L143 106 L143 184 L141 196 L59 196 L57 184 L57 106 L40 114 L22 76 L57 30 Z',
+    det:['M57 184 L143 184','M40 108 L57 100','M172 108 L155 100'],
+    marks:[{k:'A',key:'chest',t:'h',p:[57,94,143,94],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'shoulder',t:'h',p:[57,32,143,32],ad:'Çiyin eni — tikişdən tikişə'},
+           {k:'C',key:'sleeve',t:'d',p:[60,38,50,106],ad:'Qol uzunluğu — çiyin tikişindən manjetə'},
+           {k:'D',key:null,t:'v',p:[196,22,196,196],ad:'Ümumi uzunluq'}]},
+
+  kostyum:{ vb:'0 0 212 222',
+    d:'M70 26 L57 33 L24 64 L45 87 L57 76 L57 200 L97 205 L100 188 L103 205 L143 200 L143 76 L155 87 L176 64 L143 33 L130 26 Z',
+    det:['M82 26 L100 72 L118 26','M100 72 L100 204','M57 76 L45 87','M143 76 L155 87'],
+    dots:[[100,122,3],[100,144,3]],
+    marks:[{k:'A',key:'chest',t:'h',p:[57,96,143,96],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'shoulder',t:'h',p:[57,35,143,35],ad:'Çiyin eni — tikişdən tikişə'},
+           {k:'C',key:'sleeve',t:'d',p:[60,40,40,82],ad:'Qol uzunluğu — çiyin tikişindən manjetə'},
+           {k:'D',key:'waist',t:'h',p:[57,142,143,142],ad:'Bel eni — düymənin bağlandığı xətt'},
+           {k:'E',key:null,t:'v',p:[196,26,196,204],ad:'Ümumi uzunluq'}]},
+
+  kurtka:{ vb:'0 0 212 230',
+    d:'M72 24 L57 32 L23 68 L44 91 L57 79 L57 210 L143 210 L143 79 L156 91 L177 68 L143 32 L128 24 L116 24 Q100 38 84 24 Z',
+    det:['M84 24 L100 46 L116 24','M100 46 L100 210','M57 79 L44 91','M143 79 L156 91'],
+    marks:[{k:'A',key:'chest',t:'h',p:[57,100,143,100],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'shoulder',t:'h',p:[57,34,143,34],ad:'Çiyin eni — tikişdən tikişə'},
+           {k:'C',key:'sleeve',t:'d',p:[60,40,40,86],ad:'Qol uzunluğu — çiyin tikişindən manjetə'},
+           {k:'D',key:null,t:'v',p:[196,24,196,210],ad:'Ümumi uzunluq'}]},
+
+  idman:{ vb:'0 0 212 208',
+    d:'M74 38 Q100 52 126 38 L144 31 L178 63 L158 85 L144 74 L144 186 Q100 193 56 186 L56 74 L42 85 L22 63 L56 31 Z',
+    det:['M74 38 Q100 10 126 38 Q100 24 74 38','M72 138 L128 138 L132 168 L68 168 Z','M56 74 L42 85','M144 74 L158 85'],
+    marks:[{k:'A',key:'chest',t:'h',p:[56,96,144,96],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'shoulder',t:'h',p:[56,33,144,33],ad:'Çiyin eni — tikişdən tikişə'},
+           {k:'C',key:'sleeve',t:'d',p:[59,39,38,78],ad:'Qol uzunluğu — çiyin tikişindən manjetə'},
+           {k:'D',key:'waist',t:'h',p:[58,176,142,176],ad:'Ətək eni — aşağı rezin xətti'},
+           {k:'E',key:null,t:'v',p:[196,20,196,186],ad:'Ümumi uzunluq — kapüşonla birlikdə'}]},
+
+  don:{ vb:'0 0 212 248',
+    d:'M76 22 Q100 36 124 22 L141 29 L168 54 L152 73 L141 62 L136 110 L162 230 Q100 242 38 230 L64 110 L59 62 L48 73 L32 54 L59 29 Z',
+    det:['M76 22 Q100 32 124 22','M59 62 L48 73','M141 62 L152 73'],
+    marks:[{k:'A',key:'chest',t:'h',p:[60,76,140,76],ad:'Döş eni — qoltuqaltından qoltuqaltına'},
+           {k:'B',key:'waist',t:'h',p:[64,116,136,116],ad:'Bel eni — ən dar yer'},
+           {k:'C',key:'hip',t:'h',p:[55,164,145,164],ad:'Omba eni — bel xəttindən 20 sm aşağı'},
+           {k:'D',key:null,t:'v',p:[196,22,196,232],ad:'Ümumi uzunluq — çiyindən ətəyə'}]},
+
+  salvar:{ vb:'0 0 212 256',
+    d:'M54 18 L146 18 L153 104 L149 244 L111 244 L104 134 L96 134 L89 244 L51 244 L47 104 Z',
+    det:['M54 34 L146 34','M100 34 Q104 52 100 72'],
+    marks:[{k:'A',key:'waist',t:'h',p:[54,24,146,24],ad:'Bel eni — kəmər xətti'},
+           {k:'B',key:'hip',t:'h',p:[49,78,151,78],ad:'Omba eni — ən geniş yer'},
+           {k:'C',key:'inseam',t:'v',p:[84,136,86,242],ad:'İç paça — çatal tikişindən balağa'},
+           {k:'D',key:null,t:'v',p:[196,18,196,244],ad:'Xarici paça — kəmərdən balağa'}]},
+
+  sort:{ vb:'0 0 212 164',
+    d:'M54 18 L146 18 L153 76 L150 150 L110 150 L104 102 L96 102 L90 150 L50 150 L47 76 Z',
+    det:['M54 34 L146 34','M100 34 Q104 50 100 66'],
+    marks:[{k:'A',key:'waist',t:'h',p:[54,24,146,24],ad:'Bel eni — kəmər xətti'},
+           {k:'B',key:'hip',t:'h',p:[49,70,151,70],ad:'Omba eni — ən geniş yer'},
+           {k:'C',key:null,t:'v',p:[196,18,196,150],ad:'Yan uzunluq'}]},
+
+  etek:{ vb:'0 0 212 198',
+    d:'M68 18 L132 18 L137 34 L161 176 Q100 186 39 176 L63 34 Z',
+    det:['M68 32 L132 32'],
+    marks:[{k:'A',key:'waist',t:'h',p:[68,24,132,24],ad:'Bel eni — kəmər xətti'},
+           {k:'B',key:'hip',t:'h',p:[57,74,143,74],ad:'Omba eni — beldən 20 sm aşağı'},
+           {k:'C',key:null,t:'v',p:[196,18,196,180],ad:'Ümumi uzunluq'}]},
+
+  bra:{ vb:'0 0 212 172',
+    d:'M50 46 C64 30 88 36 100 54 L100 96 C78 98 54 92 50 74 Z',
+    extra:['M162 46 C148 30 124 36 112 54 L112 96 C134 98 158 92 162 74 Z',
+           'M100 54 L112 54 L112 96 L100 96 Z',
+           'M16 74 L50 72 L50 94 L16 94 Q11 84 16 74 Z',
+           'M196 74 L162 72 L162 94 L196 94 Q201 84 196 74 Z'],
+    det:['M52 48 L30 12','M160 48 L182 12','M16 84 L50 83','M196 84 L162 83',
+         'M50 74 C66 86 84 92 100 92'],
+    marks:[{k:'A',key:'underbust',t:'h',p:[16,120,196,120],ad:'Kəmər — döşaltı çevrəsi, nömrəni (70, 75, 80…) bu təyin edir'},
+           {k:'B',key:'chest',t:'v',p:[72,36,72,92],ad:'Kasa — döş ilə döşaltı arasındakı fərq hərfi (A, B, C…) təyin edir'}]},
+
+  boxer:{ vb:'0 0 212 156',
+    d:'M46 22 L166 22 L170 72 L162 130 L120 130 L108 86 L104 86 L92 130 L50 130 L42 72 Z',
+    det:['M46 38 L166 38'],
+    marks:[{k:'A',key:'waist',t:'h',p:[46,28,166,28],ad:'Bel eni — rezin xətti'},
+           {k:'B',key:'hip',t:'h',p:[42,68,170,68],ad:'Omba eni — ən geniş yer'}]},
+
+  corab:{ vb:'0 0 212 176',
+    d:'M44 20 L80 20 L84 80 Q96 102 138 108 Q174 114 176 130 Q176 144 158 144 L84 144 Q48 140 44 108 Z',
+    det:['M44 34 L80 34','M44 46 L80 46'],
+    marks:[{k:'A',key:'foot',t:'h',p:[84,160,176,160],ad:'Ayaq uzunluğu — daban tikişindən burun ucuna'},
+           {k:'B',key:null,t:'v',p:[26,20,26,110],ad:'Boğaz hündürlüyü'}]},
+
+  ayaqqabi:{ vb:'0 0 212 142',
+    d:'M34 102 L34 60 Q38 44 58 50 L68 78 Q114 86 164 90 Q186 92 186 102 Q186 112 174 112 L46 112 Q34 112 34 102 Z',
+    det:['M34 112 L186 112'],
+    marks:[{k:'A',key:'foot',t:'h',p:[34,128,186,128],ad:'Daxili qəlib uzunluğu — ayaq uzunluğu + 1,3 sm pay'}]}
+};
+const CAT_ART = { mayka:'mayka', jiletka:'jiletka', kostyum:'kostyum', kurtka:'kurtka',
+  idman:'idman', don:'don', salvar:'salvar', sort:'sort', etek:'etek',
+  corab:'corab', ayaqqabi:'ayaqqabi' };
+
+function artKey(cat, sex){
+  if(cat==='altpaltar') return sex==='f' ? 'bra' : 'boxer';
+  return CAT_ART[cat];
+}
+
+/* rəsmi çək — mini rejimdə yalnız kontur, tam rejimdə ölçü xətləri də */
+function drawArt(cat, sex, mini){
+  const A = ART[artKey(cat,sex)]; if(!A) return '';
+  const L = 'stroke:var(--cloth-line)';
+  let s = `<svg viewBox="${A.vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${CATS[cat].ad} texniki rəsmi">`;
+  s += `<path d="${A.d}" style="fill:var(--cloth);${L}" stroke-width="2" stroke-linejoin="round"/>`;
+  (A.extra||[]).forEach(p=> s += `<path d="${p}" style="fill:var(--cloth);${L}" stroke-width="2" stroke-linejoin="round"/>`);
+  (A.det||[]).forEach(p=> s += `<path d="${p}" fill="none" style="${L}" stroke-width="1.4" opacity=".75"/>`);
+  (A.dots||[]).forEach(([x,y,r])=> s += `<circle cx="${x}" cy="${y}" r="${r}" style="fill:var(--cloth-line)"/>`);
+  if(!mini) (A.marks||[]).forEach(mk=>{
+    const [x1,y1,x2,y2]=mk.p, c = mk.key ? `var(${MEAS[mk.key].v})` : 'var(--accent)';
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const tick = (x,y) => mk.t==='h'
+      ? `<line x1="${x}" y1="${y-6}" x2="${x}" y2="${y+6}" style="stroke:${c}" stroke-width="2.2"/>`
+      : `<line x1="${x-6}" y1="${y}" x2="${x+6}" y2="${y}" style="stroke:${c}" stroke-width="2.2"/>`;
+    s += `<g><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${c}" stroke-width="2.2"
+            stroke-linecap="round"/>${mk.t==='d'?'':tick(x1,y1)+tick(x2,y2)}
+          <circle cx="${mx}" cy="${my}" r="10" style="fill:${c}"/>
+          <text x="${mx}" y="${my+4}" text-anchor="middle" font-size="12" font-weight="700"
+            style="fill:var(--paper)">${mk.k}</text></g>`;
+  });
+  return s + '</svg>';
+}
+/* ═════════ VƏZİYYƏT ═════════ */
 let S = { sex:'m', h:175, w:75,
-          prior:{}, img:{}, imgW:{}, manual:{}, garments:[],
-          body:{}, conf:{}, footAuto:0, src:'prior', sel:null, editing:null,
-          shoe:{ eu:null, measured:null, width:'n' }, step:1 };
+          prior:{}, img:{}, imgW:{}, manual:{}, own:{},      // own: kateqoriya → hazırkı ölçü
+          body:{}, conf:{}, footAuto:0, src:'prior',
+          cat:null, sel:null, editing:null, step:1, pend:null, infoSeen:false };
 
-/* ═══════════ hesablama ═══════════ */
+/* ═════════ HESABLAMA ═════════ */
 function priorBody(){
-  const bmi = S.w/Math.pow(S.h/100,2);
-  const P = PRIOR[S.sex], R = RATIO[S.sex], b = {};
+  const bmi = S.w/Math.pow(S.h/100,2), P = PRIOR[S.sex], R = RATIO[S.sex], b = {};
   for(const k of ['chest','waist','hip']){ const [a,c,d]=P[k]; b[k] = a*S.h + c*bmi + d; }
-  b.shoulder = R.shoulder*S.h;
-  b.sleeve   = R.sleeve  *S.h;
-  b.inseam   = R.inseam  *S.h;
-  b.foot     = R.foot    *S.h;
-  for(const k of ORDER) b[k] = Math.round(b[k]*10)/10;
+  b.underbust = b.chest*UNDER[S.sex] - 1;
+  b.shoulder = R.shoulder*S.h;  b.sleeve = R.sleeve*S.h;
+  b.inseam   = R.inseam*S.h;    b.foot   = R.foot*S.h;
+  for(const k of ORDER) b[k] = r1(b[k]);
   return b;
 }
-
-/* bir geyimdən nə çıxır */
-function garmentEst(g){
-  const G = GARMENTS[g.tip]; if(!G) return {vals:{}, w:0, kind:null};
-  const fit = FIT.find(f=>f.id===g.fit) || FIT[2];
-  const vals = {};
-
-  // A) santimetrlə ölçülüb — ən etibarlı yol
-  let hasCm=false;
-  for(const key of G.flat){
-    const raw = g.cm && g.cm[key];
-    if(raw==null || raw==='' || !(+raw>0)) continue;
-    hasCm = true;
-    const mult = FLAT[key][1];
-    const ease = G.ease[key] ?? (mult===2 ? 6 : 1);
-    vals[key] = Math.round(((+raw*mult) - ease + (mult===2?fit.d:0))*10)/10;
-  }
-  if(hasCm) return {vals, w:0.70, kind:'cm'};
-
-  // B) ölçü etiketi
-  if(!g.sys || g.size==null || g.size==='') return {vals:{}, w:0, kind:null};
-  const sys = SYSTEMS[G.grup].find(x=>x.id===g.sys);
-  if(!sys) return {vals:{}, w:0, kind:null};
-  let rng;
-  if(sys.direct) rng = sys.band(g.size);
-  else {
-    const eu = sys.eu(g.size, S.sex);
-    if(eu==null || isNaN(eu)) return {vals:{}, w:0, kind:null};
-    rng = EU2BODY[G.grup][S.sex](eu);
-  }
-  const v = fit.pick==='hi+' ? rng.hi+3 : fit.pick==='hi' ? rng.hi
-          : fit.pick==='mid' ? (rng.lo+rng.hi)/2 : fit.pick==='lo' ? rng.lo : rng.lo-3;
-  vals[G.anchor] = Math.round(v*10)/10;
-  return {vals, w:fit.w, kind:'size'};
-}
-
-/* bütün mənbələri çəki ilə birləşdirir */
-function recompute(){
-  S.prior = priorBody();
-  S.footAuto = S.prior.foot;                 // ayaqqabı müqayisəsinin lövbəri
-  const ests = S.garments.map(garmentEst);
-  S.conf = {};
-  for(const k of ORDER){
-    if(S.manual[k]!=null){ S.body[k]=S.manual[k]; S.conf[k]=1.25; continue; }
-    const src = [{v:S.prior[k], w:0.30}];
-    if(S.img[k]!=null) src.push({v:S.img[k], w:S.imgW[k] ?? 0.5});
-    ests.forEach(e=>{ if(e.w>0 && e.vals[k]!=null) src.push({v:e.vals[k], w:e.w}); });
-    const W = src.reduce((a,b)=>a+b.w,0);
-    S.body[k] = Math.round(src.reduce((a,b)=>a+b.v*b.w,0)/W*10)/10;
-    S.conf[k] = W;
-  }
-}
-const confLabel = k => S.manual[k]!=null ? 'özün yazdın'
-  : (S.conf[k]||0) >= 1.0 ? 'yüksək' : (S.conf[k]||0) >= 0.62 ? 'orta' : 'təxmini';
-
-/* çevrə → en (Ramanujan düsturunun tərsi, ikili axtarış) */
 function circ2width(c, r, shape){
   let lo=10, hi=150;
   for(let i=0;i<36;i++){
@@ -687,97 +764,119 @@ function circ2width(c, r, shape){
   return (lo+hi)/2;
 }
 
-/* ═══════════ ayaqqabı ═══════════ */
-const LAST_EASE = 1.3;                       // qəlib payı, sm
-function shoeFromLen(cm){
-  const eu = (cm + LAST_EASE) / 0.6667;
-  const uk = 3*(cm/2.54) - 23;
-  const r = x => Math.round(x*2)/2;
-  return { eu:r(eu), uk:r(uk), usM:r(uk+1), usW:r(uk+2.5) };
-}
-const lenFromEu = eu => eu*0.6667 - LAST_EASE;
+/* bir kateqoriyanın "hazırkı ölçü"sündən bədən ölçüsü çıxar */
+function ownEst(cat){
+  const o = S.own[cat]; if(!o) return {vals:{}, w:0, kind:null};
+  const C = CATS[cat], fit = FIT.find(f=>f.id===o.fit) || FIT[2], vals = {};
 
-function shoeVerdict(){
-  const sys = S.footAuto;
-  const own = S.shoe.measured ?? (S.shoe.eu!=null ? lenFromEu(S.shoe.eu) : null);
-  if(own==null) return null;
-  const d = own - sys;
-  const kind = S.shoe.measured!=null ? 'measured' : 'size';
-  let level, title, text;
-  if(Math.abs(d) <= 0.35){
-    level='good'; title='Uyğun gəlir';
-    text = kind==='measured'
-      ? 'Ölçdüyün uzunluq sistemin hesabladığı ilə üst-üstə düşür. Ayaqqabı tövsiyəsinə tam güvənə bilərsən.'
-      : 'Geydiyin nömrə sistemin proqnozu ilə üst-üstə düşür.';
-  } else if(Math.abs(d) <= 0.8){
-    level='mid'; title='Yarım–bir nömrə fərq';
-    text = 'Fərq kiçikdir və adətən markadan gəlir. Ayağını kağızda ölçsən məsələ tam bağlanar.';
-  } else {
-    level='off'; title='Ciddi fərq';
-    text = d>0
-      ? 'Sənin ayağın boyundan gözlənilənə görə uzundur. Bu normaldır — boy ilə ayaq arasındakı nisbət hər kəsdə eyni deyil. Ölçdüyün dəyəri əsas götür.'
-      : 'Sənin ayağın boyundan gözlənilənə görə qısadır. Ola bilsin ki, adətən böyük nömrə geyinirsən — bu, ayaqqabının içində yer qalmasına gətirir.';
+  if(C.sys==='ayaqqabi'){
+    if(o.len!=null) return {vals:{foot:+o.len}, w:0.95, kind:'cm'};
+    if(o.eu!=null)  return {vals:{foot:r1(lenFromEu(+o.eu))}, w:0.55, kind:'size'};
+    return {vals:{}, w:0, kind:null};
   }
-  return { level, title, text, d, own, sys, kind };
-}
-
-function shoeFinal(){
-  const len = S.shoe.measured ?? (S.shoe.eu!=null ? lenFromEu(S.shoe.eu) : S.body.foot);
-  const s = shoeFromLen(len);
-  let adv = '';
-  if(S.shoe.width==='e') adv = 'Enli ayaq üçün qapalı və dəri ayaqqabıda yarım nömrə böyük götür; idman ayaqqabısında enli qəlib (wide / 2E) axtar.';
-  if(S.shoe.width==='d') adv = 'Dar ayaq üçün bağcıqlı və ya tokalı modellərə üstünlük ver — ayaq içəridə sürüşməsin.';
-  return { len, s, adv };
-}
-
-/* ═══════════ ölçü tövsiyəsi ═══════════ */
-function recommend(){
-  const b = S.body;
-  return CHART.sizes.map(s=>{
-    let score=0, hard=false; const det=[];
-    for(const dim in CHART.ease){
-      if(s[dim]==null || b[dim]==null) continue;
-      const e=CHART.ease[dim], gap=s[dim]-b[dim];
-      if(gap<e.min){ hard=true; det.push({dim,txt:'dar',gap}); }
-      else if(gap>e.max){ det.push({dim,txt:'bol',gap}); score+=2.2; }
-      score += Math.abs(gap-e.ideal)/Math.max(1,(e.max-e.min)/2);
+  if(C.sys==='corab'){
+    if(!o.id) return {vals:{}, w:0, kind:null};
+    const s = SOCKS.find(x=>x.id===o.id);
+    return s ? {vals:{foot:r1((lenFromEu(s.lo+0.5)+lenFromEu(Math.min(s.hi,50)-0.5))/2)}, w:0.22, kind:'size'} : {vals:{},w:0,kind:null};
+  }
+  if(C.sys==='ic'){
+    if(S.sex==='f' && o.band && o.cup){
+      const b = braToBody(+o.band, o.cup);
+      return {vals:{underbust:b.underbust, chest:b.chest}, w:0.72, kind:'size'};
     }
-    return {...s, score: hard?score+9:score, hard, det};
-  }).sort((a,b)=>a.score-b.score);
+    if(o.ic){
+      const b = icBand(o.ic, S.sex);
+      if(!b) return {vals:{}, w:0, kind:null};
+      const mid = (b.lo+b.hi)/2;
+      return {vals: S.sex==='f' ? {hip:mid} : {waist:mid}, w:0.32, kind:'size'};
+    }
+    return {vals:{}, w:0, kind:null};
+  }
+
+  // üst / alt: əvvəlcə santimetr, sonra etiket
+  let hasCm=false;
+  for(const key of (C.body||[])){
+    const raw = o.cm && o.cm[key];
+    if(raw==null || raw==='' || !(+raw>0)) continue;
+    hasCm = true;
+    const circ = ['chest','waist','hip','underbust'].includes(key);
+    const ease = C.ease[key] ?? (circ ? 6 : 0);
+    vals[key] = r1((+raw*(circ?2:1)) - ease + (circ?fit.d:0));
+  }
+  if(hasCm) return {vals, w:0.70, kind:'cm'};
+
+  if(!o.sys || o.size==null || o.size==='') return {vals:{}, w:0, kind:null};
+  const grup = C.sys, sys = SYSTEMS[grup].find(x=>x.id===o.sys);
+  if(!sys) return {vals:{}, w:0, kind:null};
+  let rng;
+  if(sys.direct) rng = sys.band(o.size);
+  else {
+    const eu = sys.eu(o.size, S.sex);
+    if(eu==null || isNaN(eu)) return {vals:{}, w:0, kind:null};
+    rng = EU2BODY[grup][S.sex](eu);
+  }
+  const v = fit.pick==='hi+' ? rng.hi+3 : fit.pick==='hi' ? rng.hi
+          : fit.pick==='mid' ? (rng.lo+rng.hi)/2 : fit.pick==='lo' ? rng.lo : rng.lo-3;
+  vals[grup==='ust' ? 'chest' : 'waist'] = r1(v);
+  return {vals, w:fit.w, kind:'size'};
 }
 
-/* ═══════════ bədən sxemi ═══════════ */
-function buildFigure(){
-  const b=S.body, sex=S.sex, h=S.h, sel=S.sel;
+/* bütün mənbələri çəki ilə birləşdir */
+function recompute(){
+  S.prior = priorBody();
+  S.footAuto = S.prior.foot;
+  const ests = Object.keys(S.own).map(ownEst);
+  S.conf = {};
+  for(const k of ORDER){
+    if(S.manual[k]!=null){ S.body[k]=S.manual[k]; S.conf[k]=1.25; continue; }
+    const src = [{v:S.prior[k], w:0.30}];
+    if(S.img[k]!=null) src.push({v:S.img[k], w:S.imgW[k] ?? 0.5});
+    ests.forEach(e=>{ if(e.w>0 && e.vals[k]!=null) src.push({v:e.vals[k], w:e.w}); });
+    const W = src.reduce((a,b)=>a+b.w,0);
+    S.body[k] = r1(src.reduce((a,b)=>a+b.v*b.w,0)/W);
+    S.conf[k] = W;
+  }
+}
+const confLabel = k => S.manual[k]!=null ? 'özün yazdın'
+  : (S.conf[k]||0) >= 1.0 ? 'yüksək' : (S.conf[k]||0) >= 0.62 ? 'orta' : 'təxmini';
+
+/* ═════════ BƏDƏN MODELİ ═════════
+   Fiqur alıcının öz ölçülərinə görə çəkilir; miqyas boydan gəlir.
+   keys = göstəriləcək ölçülər, sel = seçilmiş ölçü (nöqtələri açılır)   */
+function buildFigure(keys, sel){
+  const b=S.body, sex=S.sex, h=S.h;
   const bmi = S.w/Math.pow(h/100,2);
   const rr = k => clamp(DEPTH[sex][k] + DEPTH_BMI*(bmi-22), 0.55, 0.98);
   const wCh=circ2width(b.chest,rr('chest'),SHAPE.chest);
+  const wUn=circ2width(b.underbust,rr('chest'),SHAPE.chest);
   const wWa=circ2width(b.waist,rr('waist'),SHAPE.waist);
   const wHi=circ2width(b.hip,  rr('hip'),  SHAPE.hip);
 
   const P = sex==='f'
-    ? {chin:.133,neck:.155,sh:.188,chest:.272,waist:.378,hip:.478,crotch:.538,elb:.392,wr:.524,knee:.716,ank:.958}
-    : {chin:.132,neck:.152,sh:.185,chest:.265,waist:.383,hip:.470,crotch:.537,elb:.390,wr:.520,knee:.714,ank:.958};
+    ? {chin:.133,neck:.155,sh:.188,chest:.272,under:.318,waist:.378,hip:.478,crotch:.538,elb:.392,wr:.524,knee:.716,ank:.958}
+    : {chin:.132,neck:.152,sh:.185,chest:.265,under:.312,waist:.383,hip:.470,crotch:.537,elb:.390,wr:.520,knee:.714,ank:.958};
 
-  const FH=600, TOP=34, s=FH/h, Y=f=>TOP+f*FH;
-  const hSh=b.shoulder/2*s, hCh=wCh/2*s, hWa=wWa/2*s, hHi=wHi/2*s;
+  const FH=600, TOP=36, s=FH/h, Y=f=>TOP+f*FH;
+  const hSh=b.shoulder/2*s, hCh=wCh/2*s, hUn=wUn/2*s, hWa=wWa/2*s, hHi=wHi/2*s;
   const upW=0.055*h*s, foW=0.044*h*s;
   const aX0=hSh*0.86, aY0=Y(P.sh)+3, aX1=hSh*1.08, aY1=Y(P.elb), aX2=hSh*1.16, aY2=Y(P.wr);
   const maxHalf = Math.max(hSh,hCh,hWa,hHi, aX2+foW/2+3);
-  const ML=136, MR=116;
-  const CX=Math.round(maxHalf+ML), W=Math.round(maxHalf*2+ML+MR), H=TOP+FH+108;
+  const ML=140, MR=120;
+  const CX=Math.round(maxHalf+ML), W=Math.round(maxHalf*2+ML+MR), H=TOP+FH+112;
   const LX=CX-maxHalf-16, RX=CX+maxHalf+16;
   const legCx=hHi*0.50, thighH=hHi*0.48;
   const kneeH=0.029*h*s, ankH=0.021*h*s, kCx=legCx*0.86, aCx=legCx*0.74;
   const headRy=(Y(P.chin)-TOP)/2, headRx=0.044*h*s, neckHw=0.034*h*s;
 
-  const o  = k => sel ? (sel===k?1:.12) : .92;
+  const on = k => keys.includes(k);
+  const o  = k => sel ? (sel===k?1:.10) : .9;
   const sw = k => sel===k ? 1.5 : 1;
   const C  = k => `var(${MEAS[k].v})`;
 
   const torso = `M ${CX-hSh} ${Y(P.sh)}
     C ${CX-hSh} ${Y(P.sh)+10} ${CX-hCh} ${Y(P.chest)-18} ${CX-hCh} ${Y(P.chest)}
-    C ${CX-hCh} ${Y(P.chest)+18} ${CX-hWa} ${Y(P.waist)-18} ${CX-hWa} ${Y(P.waist)}
+    C ${CX-hCh} ${Y(P.chest)+16} ${CX-hUn} ${Y(P.under)-10} ${CX-hUn} ${Y(P.under)}
+    C ${CX-hUn} ${Y(P.under)+14} ${CX-hWa} ${Y(P.waist)-14} ${CX-hWa} ${Y(P.waist)}
     C ${CX-hWa} ${Y(P.waist)+20} ${CX-hHi} ${Y(P.hip)-20} ${CX-hHi} ${Y(P.hip)}
     C ${CX-hHi} ${Y(P.hip)+12} ${CX-(legCx+thighH)} ${Y(P.crotch)-12} ${CX-(legCx+thighH)} ${Y(P.crotch)}
     C ${CX-(legCx+thighH)} ${Y(P.crotch)+40} ${CX-(kCx+kneeH)} ${Y(P.knee)-40} ${CX-(kCx+kneeH)} ${Y(P.knee)}
@@ -791,7 +890,8 @@ function buildFigure(){
     C ${CX+(kCx+kneeH)} ${Y(P.knee)-40} ${CX+(legCx+thighH)} ${Y(P.crotch)+40} ${CX+(legCx+thighH)} ${Y(P.crotch)}
     C ${CX+(legCx+thighH)} ${Y(P.crotch)-12} ${CX+hHi} ${Y(P.hip)+12} ${CX+hHi} ${Y(P.hip)}
     C ${CX+hHi} ${Y(P.hip)-20} ${CX+hWa} ${Y(P.waist)+20} ${CX+hWa} ${Y(P.waist)}
-    C ${CX+hWa} ${Y(P.waist)-18} ${CX+hCh} ${Y(P.chest)+18} ${CX+hCh} ${Y(P.chest)}
+    C ${CX+hWa} ${Y(P.waist)-14} ${CX+hUn} ${Y(P.under)+14} ${CX+hUn} ${Y(P.under)}
+    C ${CX+hUn} ${Y(P.under)-10} ${CX+hCh} ${Y(P.chest)+16} ${CX+hCh} ${Y(P.chest)}
     C ${CX+hCh} ${Y(P.chest)-18} ${CX+hSh} ${Y(P.sh)+10} ${CX+hSh} ${Y(P.sh)} Z`;
 
   const arm = d => `
@@ -805,73 +905,90 @@ function buildFigure(){
     const r=ang*Math.PI/180, dx=Math.cos(r)*len/2, dy=Math.sin(r)*len/2;
     return `<line x1="${x-dx}" y1="${y-dy}" x2="${x+dx}" y2="${y+dy}" style="stroke:${C(k)}" stroke-width="2.2"/>`;
   };
+  /* nömrəli başlanğıc/son nişanı — yalnız seçiləndə */
+  const pin=(x,y,n,k)=> sel!==k ? '' :
+    `<g><circle cx="${x}" cy="${y}" r="11" style="fill:${C(k)}"/>
+       <text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="12.5" font-weight="700"
+         style="fill:var(--sunk)">${n}</text></g>`;
+
   const circMark=(k,cy,rx)=>{
-    const ry=Math.max(7,rx*0.25), on=sel===k;
+    if(!on(k)) return '';
+    const ry=Math.max(7,rx*0.25);
     return `<g class="mk" data-m="${k}" opacity="${o(k)}">
       <path d="M ${CX-rx} ${cy} A ${rx} ${ry} 0 0 1 ${CX+rx} ${cy}" fill="none" style="stroke:${C(k)}"
         stroke-width="${2*sw(k)}" stroke-dasharray="5 4" opacity=".5"/>
       <path d="M ${CX-rx} ${cy} A ${rx} ${ry} 0 0 0 ${CX+rx} ${cy}" fill="none" style="stroke:${C(k)}"
         stroke-width="${2.6*sw(k)}" stroke-linecap="round"/>
-      <circle cx="${CX-rx}" cy="${cy}" r="${on?4.5:3.2}" style="fill:${C(k)}"/>
-      <circle cx="${CX+rx}" cy="${cy}" r="${on?4.5:3.2}" style="fill:${C(k)}"/>
+      <circle cx="${CX-rx}" cy="${cy}" r="3.2" style="fill:${C(k)}"/>
+      <circle cx="${CX+rx}" cy="${cy}" r="3.2" style="fill:${C(k)}"/>
+      ${pin(CX, cy+ry, '1', k)}
       <rect x="${CX-rx-14}" y="${cy-14}" width="${rx*2+28}" height="28" fill="transparent"/>
     </g>`;
   };
   const label=(k,x,y,anchor,edgeX)=>{
-    if(sel && sel!==k) return '';
+    if(!on(k) || (sel && sel!==k)) return '';
     const dir = anchor==='end' ? 1 : -1;
     return `<g class="mk" data-m="${k}" opacity="${sel===k?1:.95}">
       <line x1="${x+dir*3}" y1="${y}" x2="${edgeX}" y2="${y}" style="stroke:${C(k)}" stroke-width="1" opacity=".45"/>
       <text x="${x}" y="${y-3}" text-anchor="${anchor}" style="fill:var(--muted)" font-size="10.5">${MEAS[k].ad}</text>
-      <text x="${x}" y="${y+12}" text-anchor="${anchor}" style="fill:${C(k)}" font-size="14" font-weight="700">${S.body[k].toFixed(1)} sm</text>
+      <text x="${x}" y="${y+12}" text-anchor="${anchor}" style="fill:${C(k)}" font-size="14" font-weight="700">${b[k].toFixed(1)} sm</text>
     </g>`;
   };
 
-  const yShL=Y(P.sh)-13;
-  const shoulderMark=`<g class="mk" data-m="shoulder" opacity="${o('shoulder')}">
+  const yShL=Y(P.sh)-14;
+  const shoulderMark = !on('shoulder') ? '' : `<g class="mk" data-m="shoulder" opacity="${o('shoulder')}">
     <line x1="${CX-hSh}" y1="${yShL}" x2="${CX+hSh}" y2="${yShL}" style="stroke:${C('shoulder')}"
       stroke-width="${2.6*sw('shoulder')}" stroke-linecap="round"/>
     ${tick(CX-hSh,yShL,15,90,'shoulder')}${tick(CX+hSh,yShL,15,90,'shoulder')}
     <line x1="${CX-hSh}" y1="${yShL+7}" x2="${CX-hSh}" y2="${Y(P.sh)}" style="stroke:${C('shoulder')}" stroke-width="1" opacity=".4"/>
     <line x1="${CX+hSh}" y1="${yShL+7}" x2="${CX+hSh}" y2="${Y(P.sh)}" style="stroke:${C('shoulder')}" stroke-width="1" opacity=".4"/>
+    ${pin(CX-hSh, yShL-16, '1', 'shoulder')}${pin(CX+hSh, yShL-16, '2', 'shoulder')}
     <rect x="${CX-hSh-12}" y="${yShL-13}" width="${hSh*2+24}" height="26" fill="transparent"/>
   </g>`;
 
-  const sleeveMark=`<g class="mk" data-m="sleeve" opacity="${o('sleeve')}">
+  const sleeveMark = !on('sleeve') ? '' : `<g class="mk" data-m="sleeve" opacity="${o('sleeve')}">
     <path d="M ${CX+aX0} ${aY0} L ${CX+aX1} ${aY1} L ${CX+aX2} ${aY2}" fill="none" style="stroke:${C('sleeve')}"
       stroke-width="${2.6*sw('sleeve')}" stroke-linecap="round" stroke-linejoin="round"/>
     ${tick(CX+aX0,aY0,16,0,'sleeve')}${tick(CX+aX2,aY2,16,0,'sleeve')}
     <circle cx="${CX+aX1}" cy="${aY1}" r="2.6" style="fill:${C('sleeve')}"/>
+    ${pin(CX+aX0+16, aY0-6, '1', 'sleeve')}${pin(CX+aX2+16, aY2+6, '2', 'sleeve')}
   </g>`;
 
   const iy0=Y(P.crotch)+8, iy1=Y(P.ank);
-  const inseamMark=`<g class="mk" data-m="inseam" opacity="${o('inseam')}">
+  const inseamMark = !on('inseam') ? '' : `<g class="mk" data-m="inseam" opacity="${o('inseam')}">
     <line x1="${CX+5}" y1="${iy0}" x2="${CX+(aCx-ankH*0.4)}" y2="${iy1}" style="stroke:${C('inseam')}"
       stroke-width="${2.6*sw('inseam')}" stroke-linecap="round"/>
     ${tick(CX+5,iy0,16,0,'inseam')}${tick(CX+(aCx-ankH*0.4),iy1,16,0,'inseam')}
+    ${pin(CX+22, iy0-4, '1', 'inseam')}${pin(CX+(aCx)+20, iy1-4, '2', 'inseam')}
   </g>`;
 
-  const fw=S.body.foot*s, fy=TOP+FH+58, fx0=CX-fw/2, fx1=CX+fw/2;
-  const footMark=`<g class="mk" data-m="foot" opacity="${o('foot')}">
+  const fw=b.foot*s, fy=TOP+FH+60, fx0=CX-fw/2, fx1=CX+fw/2;
+  const footMark = !on('foot') ? '' : `<g class="mk" data-m="foot" opacity="${o('foot')}">
     <path d="M ${fx0} ${fy} L ${fx0} ${fy-17} Q ${fx0+3} ${fy-25} ${fx0+12} ${fy-21}
       L ${fx0+19} ${fy-10} Q ${CX} ${fy-7} ${fx1-7} ${fy-5} Q ${fx1} ${fy-4} ${fx1} ${fy} Z"
       style="fill:var(--figure-2);stroke:${sel==='foot'?C('foot'):'transparent'}" stroke-width="1.5"/>
     <line x1="${fx0}" y1="${fy+11}" x2="${fx1}" y2="${fy+11}" style="stroke:${C('foot')}"
       stroke-width="${2.4*sw('foot')}" stroke-linecap="round"/>
     ${tick(fx0,fy+11,13,90,'foot')}${tick(fx1,fy+11,13,90,'foot')}
-    ${sel&&sel!=='foot'?'':`<text x="${CX}" y="${fy+30}" text-anchor="middle" style="fill:${C('foot')}"
-      font-size="13" font-weight="700">${S.body.foot.toFixed(1)} sm</text>
+    ${pin(fx0, fy+30, '1', 'foot')}${pin(fx1, fy+30, '2', 'foot')}
+    ${sel&&sel!=='foot'?'':`<text x="${CX}" y="${fy+32}" text-anchor="middle" style="fill:${C('foot')}"
+      font-size="13" font-weight="700">${b.foot.toFixed(1)} sm</text>
     <text x="${CX}" y="${fy-32}" text-anchor="middle" style="fill:var(--muted)" font-size="10.5">Ayaq uzunluğu (yandan)</text>`}
   </g>`;
 
   const hy=TOP+FH*0.80;
-  const heightMark=`<g opacity="${sel?0.22:0.7}">
+  const heightMark=`<g opacity="${sel?0.2:0.7}">
     <line x1="22" y1="${TOP}" x2="22" y2="${TOP+FH}" style="stroke:var(--muted)" stroke-width="1.4"/>
     <line x1="15.5" y1="${TOP}" x2="28.5" y2="${TOP}" style="stroke:var(--muted)" stroke-width="2.2"/>
     <line x1="15.5" y1="${TOP+FH}" x2="28.5" y2="${TOP+FH}" style="stroke:var(--muted)" stroke-width="2.2"/>
     <text x="34" y="${hy-5}" style="fill:var(--muted)" font-size="10.5">Boy — miqyasın lövbəri</text>
     <text x="34" y="${hy+10}" style="fill:var(--ink)" font-size="12.5" font-weight="700">${h} sm</text>
   </g>`;
+
+  /* sol/sağ etiket sütunları — toqquşmamaq üçün növbə ilə */
+  const leftKeys  = ['shoulder','chest','underbust','waist','hip'].filter(on);
+  const leftY = { shoulder:yShL, chest:Y(P.chest), underbust:Y(P.under), waist:Y(P.waist), hip:Y(P.hip) };
+  const leftEdge = { shoulder:CX-hSh-4, chest:CX-hCh-6, underbust:CX-hUn-6, waist:CX-hWa-6, hip:CX-hHi-6 };
 
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
     aria-label="Ölçülərin bədən üzərində yerləşməsi">
@@ -885,107 +1002,145 @@ function buildFigure(){
     <ellipse cx="${CX+aCx}" cy="${Y(P.ank)+11}" rx="${ankH*1.3}" ry="11" style="fill:var(--figure-2)"/>
     ${circMark('hip',Y(P.hip),hHi*0.99)}
     ${circMark('waist',Y(P.waist),hWa*0.99)}
+    ${circMark('underbust',Y(P.under),hUn*0.99)}
     ${circMark('chest',Y(P.chest),hCh*0.99)}
     ${shoulderMark}${sleeveMark}${inseamMark}${footMark}
-    ${label('shoulder',LX,yShL,'end',CX-hSh-4)}
-    ${label('chest',LX,Y(P.chest),'end',CX-hCh-6)}
-    ${label('waist',LX,Y(P.waist),'end',CX-hWa-6)}
-    ${label('hip',LX,Y(P.hip),'end',CX-hHi-6)}
+    ${leftKeys.map(k=>label(k,LX,leftY[k],'end',leftEdge[k])).join('')}
     ${label('sleeve',RX,Y(P.elb)+6,'start',CX+aX1+8)}
     ${label('inseam',RX,Y((P.crotch+P.ank)/2),'start',CX+aCx*0.7+8)}
   </svg>`;
 }
+/* ═════════ TÖVSİYƏ OLUNAN ÖLÇÜ ═════════ */
+const LETTERS = ['XS','S','M','L','XL','XXL','3XL'];
+function euFromBody(grup, v){
+  return grup==='ust' ? (S.sex==='m' ? (v-4)/2 : (v-12)/2)
+                      : (S.sex==='m' ? (v+14)/2 : (v+4)/2);
+}
+function sizeFor(cat){
+  const C=CATS[cat], b=S.body;
+  if(C.sys==='ayaqqabi'){ const s=shoeFromLen(b.foot);
+    return {main:'EU '+s.eu, sub:`UK ${s.uk} · US ${S.sex==='m'?s.usM:s.usW}`}; }
+  if(C.sys==='corab'){ const s=sockFrom(shoeFromLen(b.foot).eu);
+    return {main:s.id, sub:'EU '+s.eu}; }
+  if(C.sys==='ic'){
+    if(S.sex==='f'){ const r=braFrom(b.underbust,b.chest);
+      return {main:r.eu, sub:`UK ${r.uk} · FR ${r.fr} · IT ${r.it}`}; }
+    return {main:icSize(b.waist,'m'), sub:`bel ${b.waist.toFixed(0)} sm`}; }
 
-/* ═══════════ 2-ci addımın təsviri ═══════════ */
-function renderStep2(){
-  $('figbox').innerHTML = buildFigure();
+  const grup=C.sys, v = grup==='ust' ? b.chest : b.waist;
+  const eu = euFromBody(grup, v), euR = Math.round(eu/2)*2;
+  const tbl = SYSTEMS[grup].find(s=>s.id==='intl');
+  let best=LETTERS[0], bd=1e9;
+  for(const L of LETTERS){ const e=tbl.eu(L,S.sex); if(Math.abs(e-eu)<bd){ bd=Math.abs(e-eu); best=L; } }
+  let sub = `EU ${euR}`;
+  if(grup==='alt') sub += ` · W${Math.round((v-2)/2.54)}`;
+  return {main:best, sub};
+}
+/* bütün dünya sistemləri üzrə açılış */
+function allSizes(cat){
+  const C=CATS[cat], b=S.body, out=[];
+  if(C.sys==='ayaqqabi'){ const s=shoeFromLen(b.foot);
+    return [['EU',s.eu],['UK',s.uk],['US kişi',s.usM],['US qadın',s.usW],
+            ['Ayaq uzunluğu',b.foot.toFixed(1)+' sm']]; }
+  if(C.sys==='corab'){ const s=sockFrom(shoeFromLen(b.foot).eu);
+    return [['Beynəlxalq',s.id],['EU',s.eu],['UK',s.uk],['US',s.us]]; }
+  if(C.sys==='ic'){
+    if(S.sex==='f'){ const r=braFrom(b.underbust,b.chest);
+      return [['EU / TR',r.eu],['Böyük Britaniya',r.uk],['ABŞ',r.us],['Fransa / İspaniya',r.fr],
+              ['İtaliya',r.it],['Avstraliya',r.au],
+              ['Döşaltı · döş',`${b.underbust.toFixed(0)} · ${b.chest.toFixed(0)} sm`]]; }
+    return [['Beynəlxalq',icSize(b.waist,'m')],['Bel',b.waist.toFixed(0)+' sm']]; }
 
-  $('chips').innerHTML = ORDER.map(k=>
-    `<button class="chip ${S.sel===k?'on':''}" data-m="${k}" type="button">
-      <i style="background:var(${MEAS[k].v})"></i>${MEAS[k].qisa}</button>`).join('');
-
-  const SRC = {
-    prior:'Ölçülər boy və çəkiyə görə hesablanıb.',
-    pose:'Şəkildəki duruş nöqtələri və boy/çəki birləşdirilib. Şəkil silindi.',
-    image:'Şəkildəki siluet, duruş nöqtələri və boy/çəki birləşdirilib. Şəkil silindi.'
-  };
-  const ng = S.garments.filter(g=>garmentEst(g).w>0).length;
-  $('srcnote').innerHTML = `<div class="note">${SRC[S.src]||SRC.prior}`
-    + (ng ? ` Üstünə ${ng} geyimin məlumatı əlavə olunub.` : ' Aşağıda geyim əlavə etsən dəqiqləşəcək.')
-    + `</div>`;
-
-  renderGarments();
-  renderList();
-  renderDetail();
+  const grup=C.sys, v = grup==='ust' ? b.chest : b.waist, eu = euFromBody(grup, v);
+  for(const sysd of SYSTEMS[grup]){
+    const opts = sysd.opts(S.sex); if(!opts) continue;
+    let best=null, bd=1e9;
+    for(const o of opts){
+      let e;
+      if(sysd.direct){ const r=sysd.band(o); e = euFromBody(grup,(r.lo+r.hi)/2); }
+      else e = sysd.eu(o, S.sex);
+      if(e==null||isNaN(e)) continue;
+      if(Math.abs(e-eu)<bd){ bd=Math.abs(e-eu); best=o; }
+    }
+    if(best!=null) out.push([sysd.ad, sysd.id==='jeans' ? 'W'+best : best]);
+  }
+  return out;
 }
 
-/* ── geyim kartları ── */
-function renderGarments(){
-  $('garments').innerHTML = S.garments.map((g,i)=>{
-    const G=GARMENTS[g.tip];
-    const sysList = SYSTEMS[G.grup].filter(x=>x.opts(S.sex));
-    const sys = sysList.find(x=>x.id===g.sys) || sysList[0];
-    const opts = sys.opts(S.sex)||[];
-    const est = garmentEst(g);
-    const out = est.w>0
-      ? `<div class="gout">→ ${Object.entries(est.vals).map(([k,v])=>
-            `${MEAS[k].ad} <b>${v} sm</b>`).join(' · ')}
-          <div style="color:var(--muted);margin-top:4px">${est.kind==='cm'
-            ? 'Santimetrlə ölçüldüyü üçün bu məlumat ağır çəkiyə malikdir.'
-            : 'Ölçü etiketinə əsaslanır — markalar arasında fərq ola bilər.'}</div></div>`
-      : `<div class="gout dim">Ölçünü seç və ya santimetrlə ölç — nəticə burada görünəcək.</div>`;
+/* ═════════ EKRANLAR ═════════ */
+const SCREENS = ['s1','s2','s3','sInfo','s4'];
+const STEPNO  = {s1:1, s2:2, s3:2, sInfo:2, s4:4};
+function go(id){
+  S.step=id;
+  SCREENS.forEach(x=>$(x).classList.toggle('on', x===id));
+  const n = STEPNO[id] || 1;
+  $('stepno').textContent = `${n} / 4`;
+  document.querySelectorAll('.bar i').forEach((el,i)=>el.classList.toggle('on', i<n));
+  if(id==='s2') renderCats();
+  if(id==='s3') renderCat();
+  if(id==='s4') renderMy();
+  window.scrollTo({top:0, behavior:'instant'});
+}
+const showErr=(id,msg)=>{ const e=$(id); e.textContent=msg; e.hidden=false; };
+const hideErr=id=>{ $(id).hidden=true; };
+const visibleCats = () => CAT_ORDER.filter(k=>{
+  const c=CATS[k].cins; return c==='hm' || c===S.sex; });
 
-    return `<div class="gcard">
-      <div class="ghead"><b>${G.ad}</b>
-        <button class="x" data-del="${i}" type="button" aria-label="Sil">×</button></div>
-      <div class="grid2">
-        <div><label for="gs-${i}">Ölçü sistemi</label>
-          <select id="gs-${i}" data-sys="${i}">${sysList.map(x=>
-            `<option value="${x.id}" ${x.id===sys.id?'selected':''}>${x.ad}</option>`).join('')}</select></div>
-        <div><label for="gz-${i}">Ölçü</label>
-          <select id="gz-${i}" data-size="${i}"><option value="">— seç —</option>${opts.map(o=>
-            `<option value="${o}" ${String(o)===String(g.size)?'selected':''}>${o}</option>`).join('')}</select></div>
-      </div>
-      <label style="margin-top:13px">Necə oturur?</label>
-      <div class="fitscale">${FIT.map(f=>
-        `<button type="button" class="${g.fit===f.id?'on':''}" data-fit="${i}:${f.id}">${f.qisa}</button>`).join('')}</div>
-      <div class="fitends"><span>bədənə yapışır</span><span>üstündə sallanır</span></div>
-      ${out}
-      <button class="ghost sm" data-cm="${i}" type="button" style="margin-top:12px">
-        ${g.cmOpen?'Santimetr ölçüsünü gizlət':'Santimetrlə ölç — daha dəqiq'}</button>
-      ${g.cmOpen?`<div class="gcm">
-        <p style="font-size:12.5px;margin-bottom:12px">Geyimi düz səthə sər, düymələri bağla və
-        lenti dartmadan ölç. Doldurduğun hər sahə ölçünü dəqiqləşdirir.</p>
-        ${G.flat.map(key=>`<div class="field">
-          <label for="gc-${i}-${key}">${FLAT[key][0]}</label>
-          <div class="unit"><input id="gc-${i}-${key}" type="number" step="0.5" inputmode="decimal"
-            value="${(g.cm&&g.cm[key])??''}" data-cmin="${i}:${key}" placeholder="boş qoya bilərsən"><span>sm</span></div>
-        </div>`).join('')}
-      </div>`:''}
-    </div>`;
+/* ── kateqoriya şəbəkəsi ── */
+function renderCats(){
+  $('catgrid').innerHTML = visibleCats().map(k=>{
+    const has = !!S.own[k] && ownEst(k).w>0;
+    const sz = sizeFor(k);
+    return `<button class="cat ${has?'done':''}" data-cat="${k}" type="button">
+      ${drawArt(k, S.sex, true)}
+      <span class="nm">${CATS[k].qisa}</span>
+      <span class="sz ${has?'':'empty'}">${has ? sz.main : 'ölçü əlavə et'}</span>
+    </button>`;
   }).join('');
 }
 
-function renderPicker(){
-  const open = !$('gpick').hidden;
-  if(!open){ $('gpick').innerHTML=''; return; }
-  const g = grup => Object.entries(GARMENTS).filter(([,v])=>v.grup===grup)
-    .map(([k,v])=>`<button class="chip" data-add="${k}" type="button">${v.ad}</button>`).join('');
-  $('gpick').innerHTML = `<div class="lbl">Üst geyim</div>${g('ust')}
-                          <div class="lbl">Alt geyim</div>${g('alt')}`;
-}
+/* ── kateqoriya detalı ── */
+function renderCat(){
+  const cat=S.cat, C=CATS[cat]; if(!C) return;
+  const keys = C.body;
+  $('c-title').textContent = C.ad;
+  const sz = sizeFor(cat);
+  $('c-sub').innerHTML = `Tövsiyə olunan ölçün: <b style="color:var(--ink)">${sz.main}</b>
+    <span style="font-family:var(--font-num)">${sz.sub}</span>`;
 
-/* ── ölçü siyahısı: açılmır, yalnız «Dəyiş» ── */
-function renderList(){
-  $('mlist').innerHTML = ORDER.map(k=>{
+  $('c-art').innerHTML = drawArt(cat, S.sex, false);
+  const A = ART[artKey(cat,S.sex)];
+  $('c-leg').innerHTML = (A.marks||[]).map(mk=>{
+    const c = mk.key ? `var(${MEAS[mk.key].v})` : 'var(--accent)';
+    const val = mk.key && S.body[mk.key]!=null ? S.body[mk.key].toFixed(1)+' sm' : '';
+    return `<div class="leg"><span class="k" style="background:${c}">${mk.k}</span>
+      <span class="t">${mk.ad}</span><span class="v">${val}</span></div>`;
+  }).join('');
+
+  $('c-fig').innerHTML = buildFigure(keys, S.sel);
+  $('c-chips').innerHTML = keys.map(k=>
+    `<button class="chip ${S.sel===k?'on':''}" data-m="${k}" type="button">
+      <i style="background:var(${MEAS[k].v})"></i>${MEAS[k].qisa}</button>`).join('');
+
+  if(S.sel && keys.includes(S.sel)){
+    const M=MEAS[S.sel], cc=`var(${M.v})`;
+    const two = M.tip==='xett';
+    $('c-ends').innerHTML = `<div class="ends">
+      <div class="end"><span class="n" style="background:${cc}">1</span><span><b>Başlanğıc:</b> ${M.a}</span></div>
+      <div class="end"><span class="n" style="background:${two?cc:'var(--muted)'}">${two?'2':'1'}</span>
+        <span><b>Son:</b> ${M.b}</span></div>
+      <div class="end" style="color:var(--muted)"><span class="n" style="background:var(--line)">i</span><span>${M.yol}</span></div>
+    </div>`;
+  } else $('c-ends').innerHTML =
+    `<p style="font-size:13px;margin-top:10px">Ölçünün adına toxun — bədəninin hansı nöqtəsindən başlayıb harada bitdiyi işıqlanacaq.</p>`;
+
+  $('c-mlist').innerHTML = keys.map(k=>{
     const M=MEAS[k];
-    if(S.editing===k) return `<div class="mitem" style="display:block">
-      <div class="erow">
-        <div class="unit"><input id="ed-${k}" type="number" step="0.5" inputmode="decimal"
-          value="${S.body[k].toFixed(1)}" aria-label="${M.ad}"><span>sm</span></div>
-        <button class="sm" data-save="${k}" type="button">Saxla</button>
-        <button class="ghost sm" data-cancel="1" type="button">Ləğv</button>
-      </div></div>`;
+    if(S.editing===k) return `<div class="mitem"><div class="erow">
+      <div class="unit"><input id="ed-${k}" type="number" step="0.5" inputmode="decimal"
+        value="${S.body[k].toFixed(1)}" aria-label="${M.ad}"><span>sm</span></div>
+      <button class="sm" data-save="${k}" type="button">Saxla</button>
+      <button class="ghost sm" data-cancel="1" type="button">Ləğv</button></div></div>`;
     return `<div class="mitem ${S.sel===k?'sel':''}">
       <button class="mhead" data-m="${k}" type="button">
         <span class="dot" style="background:var(${M.v})"></span>
@@ -993,124 +1148,138 @@ function renderList(){
         ${S.manual[k]!=null?'<span class="badge fix">Dəyişdin</span>':''}
         <span class="mval">${S.body[k].toFixed(1)} sm</span>
       </button>
-      <button class="edit" data-edit="${k}" type="button">Dəyiş</button>
-    </div>`;
+      <button class="edit" data-edit="${k}" type="button">Dəyiş</button></div>`;
   }).join('');
+
+  renderOwn();
 }
 
-function renderDetail(){
-  const k=S.sel;
-  if(!k){ $('detail').innerHTML=''; return; }
-  const M=MEAS[k];
-  $('detail').innerHTML = `<div class="card" style="margin-top:12px">
-    <h3 style="margin:0;font-size:15px;display:flex;align-items:center;gap:9px">
-      <span class="dot" style="background:var(${M.v})"></span>${M.ad}</h3>
-    <div class="yol">${M.yol}</div>
-    <p style="font-size:13.5px">${M.izah}</p>
-    <span class="tag">${M.geyim}</span>
-    <div style="margin-top:12px;font-size:12.5px;color:var(--muted)">
-      Dəqiqlik: <b style="color:var(--ink)">${confLabel(k)}</b></div>
-    ${S.manual[k]!=null?`<button class="ghost sm" data-reset="${k}" type="button"
-      style="margin-top:12px">Hesablanan dəyərə qaytar</button>`:''}
-  </div>`;
-}
-
-/* ═══════════ 3-cü addım ═══════════ */
-function renderShoeTable(){
-  const base = Math.round(S.body.foot);
-  let rows='';
-  for(let cm=base-3; cm<=base+3; cm+=0.5){
-    const s=shoeFromLen(cm);
-    const hl = Math.abs(cm - S.body.foot) < 0.26;
-    rows += `<tr class="${hl?'hl':''}"><td class="n">${cm.toFixed(1)} sm</td>
-      <td class="n">${s.eu}</td><td class="n">${s.uk}</td>
-      <td class="n">${s.usM}</td><td class="n">${s.usW}</td></tr>`;
-  }
-  $('shoetbl').innerHTML = rows;
-}
-
-function renderCompare(){
-  const v = shoeVerdict();
-  if(!v){ $('cmpout').innerHTML=''; return; }
-  const sysS = shoeFromLen(v.sys), ownS = shoeFromLen(v.own);
-  $('cmpout').innerHTML = `
-    <div class="verdict ${v.level}" style="margin-top:16px">
-      <div class="big">${v.d>0?'+':''}${v.d.toFixed(1)} sm</div>
-      <div style="font-weight:600">${v.title}</div>
-      <p>${v.text}</p>
-      <div class="scroll" style="margin-top:13px"><table>
-        <tr><td>Sistem hesabladı</td><td class="n">${v.sys.toFixed(1)} sm</td><td class="n">EU ${sysS.eu}</td></tr>
-        <tr><td>${v.kind==='measured'?'Sən ölçdün':'Sənin nömrən'}</td>
-            <td class="n">${v.own.toFixed(1)} sm</td><td class="n">EU ${ownS.eu}</td></tr>
-      </table></div>
-      ${v.kind==='size' && v.level!=='good'
-        ? '<p><b style="color:var(--ink)">Ayağını kağızda ölç</b> — hansının doğru olduğu bir dəqiqədə aydınlaşar.</p>' : ''}
+/* ── hazırkı ölçü bölməsi ── */
+function renderOwn(){
+  const cat=S.cat, C=CATS[cat], o=S.own[cat];
+  if(!o){
+    $('c-own').innerHTML = `<div class="card">
+      <h3>Hazırkı ölçünü əlavə et</h3>
+      <p style="font-size:13.5px;margin-bottom:0">Bu geyimdən artıq varsa və ölçüsünü bilirsənsə yaz —
+      tövsiyə dərhal dəqiqləşir. Könüllüdür.</p>
+      <button class="wide" data-addown="1" type="button">Ölçümü yazıram</button>
     </div>`;
+    return;
+  }
+  const est = ownEst(cat);
+  const out = est.w>0
+    ? `<div class="gout">→ ${Object.entries(est.vals).map(([k,v])=>
+        `${MEAS[k].ad} <b>${v} sm</b>`).join(' · ')}
+       <div style="color:var(--muted);margin-top:4px">${est.kind==='cm'
+         ? 'Santimetrlə ölçüldüyü üçün bu məlumat ağır çəkiyə malikdir.'
+         : 'Ölçü etiketinə əsaslanır — markalar arasında fərq ola bilər.'}</div></div>`
+    : `<div class="gout dim">Ölçünü seç — nəticə burada görünəcək.</div>`;
+
+  let form='';
+  if(C.sys==='ayaqqabi'){
+    form = `<div class="grid2">
+      <div><label for="o-eu">Adətən geydiyin nömrə</label>
+        <div class="unit"><input id="o-eu" type="number" step="0.5" inputmode="decimal" min="33" max="50"
+          value="${o.eu ?? ''}" data-own="eu" placeholder="məs. 42"><span>EU</span></div></div>
+      <div><label for="o-len">Ölçmüsənsə, uzunluq</label>
+        <div class="unit"><input id="o-len" type="number" step="0.1" inputmode="decimal" min="18" max="35"
+          value="${o.len ?? ''}" data-own="len" placeholder="boş qoya bilərsən"><span>sm</span></div></div>
+    </div>
+    <div class="note" style="margin-bottom:0"><b>Ayağı 1 dəqiqəyə necə ölçürsən</b>
+      <ul><li>Kağızı divara söykə, dabanın divara dəysin, üstündə dayan.</li>
+      <li>Ən uzun barmağın ucunu işarələ — bu, həmişə baş barmaq olmur.</li>
+      <li>Axşam ölç: gün ərzində ayaq 2–4 % böyüyür.</li></ul></div>`;
+  }
+  else if(C.sys==='corab'){
+    form = `<label for="o-sock">Adətən aldığın corab ölçüsü</label>
+      <select id="o-sock" data-own="id"><option value="">— seç —</option>
+      ${SOCKS.map(s=>`<option value="${s.id}" ${o.id===s.id?'selected':''}>${s.id} — EU ${s.eu} · UK ${s.uk} · US ${s.us}</option>`).join('')}</select>`;
+  }
+  else if(C.sys==='ic' && S.sex==='f'){
+    const bands=[60,65,70,75,80,85,90,95,100,105,110];
+    form = `<div class="grid2">
+      <div><label for="o-band">Kəmər (EU)</label>
+        <select id="o-band" data-own="band"><option value="">—</option>
+        ${bands.map(x=>`<option value="${x}" ${String(o.band)===String(x)?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label for="o-cup">Kasa</label>
+        <select id="o-cup" data-own="cup"><option value="">—</option>
+        ${CUPS.map(c=>`<option value="${c[1]}" ${o.cup===c[1]?'selected':''}>${c[1]} (UK ${c[2]} · US ${c[3]})</option>`).join('')}</select></div>
+    </div>
+    <div class="note" style="margin-bottom:0">EU 75B ↔ UK 34B ↔ FR 90B ↔ IT 3B — hamısı eyni ölçüdür.
+      Etiketində hansı yazılıbsa, EU qarşılığını seç.</div>`;
+  }
+  else if(C.sys==='ic'){
+    form = `<label for="o-ic">Alt paltar ölçün</label>
+      <select id="o-ic" data-own="ic"><option value="">— seç —</option>
+      ${IC_BANDS.m.map(b=>`<option value="${b[0]}" ${o.ic===b[0]?'selected':''}>${b[0]} — bel ${b[1]}–${b[2]===999?'+':b[2]} sm</option>`).join('')}</select>`;
+  }
+  else {
+    const list = SYSTEMS[C.sys].filter(x=>x.opts(S.sex));
+    const sysd = list.find(x=>x.id===o.sys) || list[0];
+    const opts = sysd.opts(S.sex)||[];
+    form = `<div class="grid2">
+      <div><label for="o-sys">Ölçü sistemi</label>
+        <select id="o-sys" data-own="sys">${list.map(x=>
+          `<option value="${x.id}" ${x.id===sysd.id?'selected':''}>${x.ad}</option>`).join('')}</select></div>
+      <div><label for="o-size">Ölçü</label>
+        <select id="o-size" data-own="size"><option value="">— seç —</option>${opts.map(x=>
+          `<option value="${x}" ${String(x)===String(o.size)?'selected':''}>${sysd.id==='jeans'?'W'+x:x}</option>`).join('')}</select></div>
+    </div>
+    <label style="margin-top:13px">Necə oturur?</label>
+    <div class="fitscale">${FIT.map(f=>
+      `<button type="button" class="${o.fit===f.id?'on':''}" data-fit="${f.id}">${f.qisa}</button>`).join('')}</div>
+    <div class="fitends"><span>bədənə yapışır</span><span>üstündə sallanır</span></div>
+    ${o.cmOpen ? `<div class="gcm" style="margin-top:14px;padding-top:13px;border-top:1px solid var(--line)">
+      <p style="font-size:12.5px">Geyimi düz səthə sər, düymələri bağla, lenti dartmadan ölç.</p>
+      ${C.body.map(k=>`<div class="field">
+        <label for="oc-${k}">${['chest','waist','hip','underbust'].includes(k)
+          ? MEAS[k].qisa+' eni — düz sərilmiş' : MEAS[k].ad}</label>
+        <div class="unit"><input id="oc-${k}" type="number" step="0.5" inputmode="decimal"
+          value="${(o.cm&&o.cm[k])??''}" data-cm="${k}" placeholder="boş qoya bilərsən"><span>sm</span></div>
+      </div>`).join('')}</div>` : ''}
+    <button class="ghost sm" data-cmtoggle="1" type="button" style="margin-top:12px">
+      ${o.cmOpen?'Santimetr ölçüsünü gizlət':'Santimetrlə ölç — daha dəqiq'}</button>`;
+  }
+
+  $('c-own').innerHTML = `<div class="card">${form}${out}
+    <button class="ghost sm" data-delown="1" type="button" style="margin-top:12px">Bu ölçünü sil</button></div>`;
 }
 
-/* ═══════════ 4-cü addım ═══════════ */
-function renderFinal(){
-  const ranked = recommend(), best=ranked[0], second=ranked[1];
-  $('r-size').textContent = best.size;
-  $('r-sub').textContent = `${CHART.ad} üçün tövsiyə` + (second?` · alternativ ${second.size}`:'');
+/* ── ÖLÇÜLƏRİM ── */
+function renderMy(){
+  const filled = visibleCats().filter(k=>S.own[k] && ownEst(k).w>0).length;
+  $('m-sub').textContent = filled
+    ? `${visibleCats().length} kateqoriyadan ${filled}-i üçün öz ölçünü yazmısan. Qalanları boy və çəkiyə görə hesablanıb.`
+    : 'Hamısı boy və çəkiyə görə hesablanıb. Kateqoriyaya girib öz ölçünü yazsan dəqiqləşəcək.';
 
-  const probs = best.det.filter(d=>d.txt!=='uyğun');
-  $('r-fit').innerHTML = probs.length
-    ? `<div class="note ${best.hard?'bad':'warn'}">${probs.map(d=>
-        `${MEAS[d.dim].ad} üzrə <b>${d.txt}</b> ola bilər (fərq ${d.gap.toFixed(1)} sm)`).join('<br>')}</div>`
-    : `<div class="note">Döş, bel və çiyin üzrə uyğun oturum gözlənilir.</div>`;
+  $('mygrid').innerHTML = visibleCats().map(k=>{
+    const sz=sizeFor(k), has = !!S.own[k] && ownEst(k).w>0;
+    return `<button class="mycard ${has?'':'empty'}" data-cat="${k}" type="button">
+      ${drawArt(k, S.sex, true)}
+      <span class="tx"><span class="nm">${CATS[k].qisa}</span>
+        <span class="sz">${sz.main}</span>
+        <span class="sub">${sz.sub}</span></span></button>`;
+  }).join('');
 
-  $('finaltbl').innerHTML = ORDER.map(k=>
+  $('m-fig').innerHTML = buildFigure(ORDER.filter(k=> S.sex==='f' || k!=='underbust'), null);
+  $('m-tbl').innerHTML = ORDER.filter(k=> S.sex==='f' || k!=='underbust').map(k=>
     `<tr><td><span class="dot" style="background:var(${MEAS[k].v});display:inline-block;margin-right:8px"></span>${MEAS[k].ad}</td>
       <td class="n">${S.body[k].toFixed(1)} sm</td><td>${confLabel(k)}</td></tr>`).join('');
 
-  const f = shoeFinal();
-  $('finalshoe').innerHTML = `
-    <div class="card">
-      <div class="scroll"><table>
-        <tr><td>Ayaq uzunluğu</td><td class="n">${f.len.toFixed(1)} sm</td></tr>
-        <tr><td>EU</td><td class="n">${f.s.eu}</td></tr>
-        <tr><td>UK</td><td class="n">${f.s.uk}</td></tr>
-        <tr><td>US kişi</td><td class="n">${f.s.usM}</td></tr>
-        <tr><td>US qadın</td><td class="n">${f.s.usW}</td></tr>
-      </table></div>
-      ${f.adv?`<div class="note" style="margin-bottom:0">${f.adv}</div>`:''}
-    </div>`;
-
-  const payload = {
-    cins:S.sex, boy:S.h, ceki:S.w,
-    ...Object.fromEntries(ORDER.map(k=>[k, S.body[k]])),
-    menbe:S.src,
+  const pay = {
+    cins:S.sex, boy:S.h, ceki:S.w, menbe:S.src,
+    bədən: Object.fromEntries(ORDER.map(k=>[k,S.body[k]])),
+    dəqiqlik: Object.fromEntries(ORDER.map(k=>[k,confLabel(k)])),
     dəyişdirilən: Object.keys(S.manual),
-    geyimler: S.garments.filter(g=>garmentEst(g).w>0)
-      .map(g=>({tip:g.tip, sistem:g.sys, olcu:g.size, oturum:g.fit, sm:g.cm||null})),
-    ayaqqabi:{ eu:f.s.eu, uzunluq:+f.len.toFixed(1), en:S.shoe.width,
-               oz_nomresi:S.shoe.eu, olculdu:S.shoe.measured },
-    dəqiqlik: Object.fromEntries(ORDER.map(k=>[k, confLabel(k)])),
+    ölçülər: Object.fromEntries(visibleCats().map(k=>[k, sizeFor(k).main])),
+    hazırkı: Object.fromEntries(Object.entries(S.own).filter(([k])=>ownEst(k).w>0)),
     tarix: new Date().toISOString().slice(0,10)
   };
-  $('payload').textContent = JSON.stringify(payload, null, 1);
+  $('payload').textContent = JSON.stringify(pay, null, 1);
 }
-
-/* ═══════════ naviqasiya ═══════════ */
-function go(n){
-  S.step=n;
-  document.querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('on', i===n-1));
-  document.querySelectorAll('.bar i').forEach((el,i)=>el.classList.toggle('on', i<n));
-  $('stepno').textContent = `${n} / 4`;
-  if(n===2) renderStep2();
-  if(n===3){ renderShoeTable(); renderCompare(); }
-  if(n===4) renderFinal();
-  window.scrollTo({top:0, behavior:'instant'});
-}
-const showErr=(id,msg)=>{ const e=$(id); e.textContent=msg; e.hidden=false; };
-const hideErr=id=>{ $(id).hidden=true; };
-
-/* ── 1-ci addım ── */
-const sync = () => {
-  const ok = $('c-age').checked && $('c-ok').checked;
-  $('go2').disabled = !ok; $('goscan').disabled = !ok;
-};
+/* ═════════ HADİSƏLƏR ═════════ */
+const sync = () => { const ok = $('c-age').checked && $('c-ok').checked;
+  $('go2').disabled = !ok; $('goscan').disabled = !ok; };
 $('c-age').addEventListener('change', sync);
 $('c-ok').addEventListener('change', sync);
 
@@ -1119,17 +1288,84 @@ function readBasics(){
   if(!(h>=130 && h<=215)){ showErr('e1','Boy 130–215 sm aralığında olmalıdır.'); return false; }
   if(!(w>=35 && w<=200)){  showErr('e1','Çəki 35–200 kq aralığında olmalıdır.'); return false; }
   hideErr('e1');
+  const sexChanged = S.sex !== $('f-sex').value;
   S.sex=$('f-sex').value; S.h=h; S.w=w;
+  if(sexChanged){ S.own={}; S.manual={}; }     // cins dəyişsə ölçülər sıfırlanır
   return true;
 }
-
 $('go2').addEventListener('click', ()=>{
   if(!readBasics()) return;
-  S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go(2);
+  S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go('s2');
 });
-$('goscan').addEventListener('click', ()=>{
-  if(!readBasics()) return;
-  hideErr('e-cam'); startCam();
+$('goscan').addEventListener('click', ()=>{ if(!readBasics()) return; hideErr('e-cam'); startCam(); });
+$('back1').addEventListener('click', ()=>go('s1'));
+$('go4').addEventListener('click', ()=>go('s4'));
+$('back2').addEventListener('click', ()=>go('s2'));
+$('back3').addEventListener('click', ()=>go('s2'));
+
+function openCat(k){
+  S.cat=k; S.sel=null; S.editing=null;
+  if(!S.infoSeen){ S.pend=k; go('sInfo'); return; }
+  go('s3');
+}
+$('s2').addEventListener('click', e=>{
+  const el=e.target.closest('[data-cat]'); if(el) openCat(el.dataset.cat);
+});
+$('s4').addEventListener('click', e=>{
+  const el=e.target.closest('[data-cat]'); if(el) openCat(el.dataset.cat);
+});
+
+$('info-go').addEventListener('click', ()=>{
+  S.infoSeen=true; S.cat=S.pend;
+  S.own[S.cat] = S.own[S.cat] || {fit:'ok', cm:{}};
+  go('s3');
+});
+$('info-skip').addEventListener('click', ()=>{ S.infoSeen=true; S.cat=S.pend; go('s3'); });
+
+/* kateqoriya ekranı */
+$('s3').addEventListener('click', e=>{
+  const t = sel => e.target.closest('['+sel+']');
+  let el;
+  if(t('data-addown')){ S.own[S.cat] = {fit:'ok', cm:{}}; renderOwn(); return; }
+  if(t('data-delown')){ delete S.own[S.cat]; recompute(); renderCat(); return; }
+  if(t('data-cmtoggle')){ const o=S.own[S.cat]; o.cmOpen=!o.cmOpen; renderOwn(); return; }
+  if(el=t('data-fit')){ S.own[S.cat].fit=el.dataset.fit; recompute(); renderCat(); return; }
+  if(el=t('data-save')){
+    const k=el.dataset.save, v=+$('ed-'+k).value;
+    if(!(v>5 && v<250)) return;
+    S.manual[k]=r1(v); S.editing=null; recompute(); renderCat(); return; }
+  if(t('data-cancel')){ S.editing=null; renderCat(); return; }
+  if(el=t('data-edit')){ S.editing=el.dataset.edit; S.sel=null; renderCat();
+    setTimeout(()=>$('ed-'+el.dataset.edit)?.focus(),30); return; }
+  if(el=t('data-m')){ const k=el.dataset.m; S.sel = S.sel===k?null:k; S.editing=null; renderCat(); }
+});
+$('s3').addEventListener('change', e=>{
+  const el=e.target.closest('[data-own]'); if(!el) return;
+  const f=el.dataset.own, o=S.own[S.cat];
+  o[f] = el.value==='' ? null : (['eu','len','band'].includes(f) ? +el.value : el.value);
+  if(f==='sys') o.size='';
+  recompute(); renderCat();
+});
+$('s3').addEventListener('input', e=>{
+  const ci=e.target.closest('[data-cm]'), oi=e.target.closest('[data-own]');
+  const o=S.own[S.cat]; if(!o) return;
+  if(ci){ o.cm=o.cm||{}; o.cm[ci.dataset.cm] = ci.value==='' ? null : +ci.value; }
+  else if(oi && oi.tagName==='INPUT'){
+    o[oi.dataset.own] = oi.value==='' ? null : +oi.value;
+  } else return;
+  recompute();
+  const est=ownEst(S.cat), out=$('c-own').querySelector('.gout');
+  if(out){ out.className = est.w>0?'gout':'gout dim';
+    out.innerHTML = est.w>0
+      ? '→ ' + Object.entries(est.vals).map(([k,v])=>`${MEAS[k].ad} <b>${v} sm</b>`).join(' · ')
+      : 'Ölçünü seç — nəticə burada görünəcək.'; }
+});
+$('c-save').addEventListener('click', ()=>go('s2'));
+
+$('restart').addEventListener('click', ()=>{
+  S.own={}; S.manual={}; S.img={}; S.imgW={}; S.sel=null; S.editing=null;
+  S.src='prior'; S.cat=null; S.infoSeen=false;
+  recompute(); go('s1');
 });
 
 /* ═══════════ kamera ilə ölçmə ═══════════
@@ -1180,7 +1416,7 @@ async function startCam(){
     stopCam();
     showErr('e-cam', 'Kamera açılmadı — bu görünüşdə kameraya icazə verilmir. '
       + 'Ölçülər boy və çəkiyə görə hesablandı; aşağıda hər birini düzəldə bilərsən.');
-    S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go(2);
+    S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go('s2');
   }
 }
 function stopCam(){
@@ -1299,7 +1535,7 @@ async function capture(){
   }catch(_){}
   cv.width=cv.height=1;                 // şəkil burada silinir
   measureFromImage(lm ? {lm,mask} : null);
-  S.sel=null; go(2);
+  S.sel=null; go('s2');
 }
 
 /* siluetdə verilmiş hündürlükdə üfüqi kəsiyin eni */
@@ -1376,98 +1612,12 @@ $('camflip').addEventListener('click', ()=>{
   stopCam(); startCam();
 });
 
-/* ── 2-ci addım ── */
-$('addg').addEventListener('click', ()=>{
-  const el=$('gpick'); el.hidden=!el.hidden; renderPicker();
-  $('addg').textContent = el.hidden ? '+ Geyim əlavə et' : 'Bağla';
-});
-
-$('s2').addEventListener('click', e=>{
-  const t = sel => e.target.closest('['+sel+']');
-  let el;
-
-  if(el=t('data-add')){
-    S.garments.push({ tip:el.dataset.add, sys:null, size:'', fit:'ok', cm:{}, cmOpen:false });
-    $('gpick').hidden=true; $('addg').textContent='+ Geyim əlavə et';
-    recompute(); renderStep2(); return;
-  }
-  if(el=t('data-del')){ S.garments.splice(+el.dataset.del,1); recompute(); renderStep2(); return; }
-  if(el=t('data-fit')){
-    const [i,f]=el.dataset.fit.split(':');
-    S.garments[+i].fit=f; recompute(); renderStep2(); return;
-  }
-  if(el=t('data-cm')){
-    const g=S.garments[+el.dataset.cm]; g.cmOpen=!g.cmOpen; renderStep2(); return;
-  }
-  if(el=t('data-save')){
-    const k=el.dataset.save, v=+$('ed-'+k).value;
-    if(!(v>5 && v<250)) return;
-    S.manual[k]=Math.round(v*10)/10; S.editing=null; recompute(); renderStep2(); return;
-  }
-  if(t('data-cancel')){ S.editing=null; renderStep2(); return; }
-  if(el=t('data-edit')){ S.editing=el.dataset.edit; S.sel=null; renderStep2();
-    setTimeout(()=>$('ed-'+el.dataset.edit)?.focus(),30); return; }
-  if(el=t('data-reset')){ delete S.manual[el.dataset.reset]; recompute(); renderStep2(); return; }
-  if(el=t('data-m')){ const k=el.dataset.m; S.sel = S.sel===k?null:k; S.editing=null; renderStep2(); }
-});
-
-/* select və input dəyişiklikləri */
-$('s2').addEventListener('change', e=>{
-  const sy=e.target.closest('[data-sys]'), sz=e.target.closest('[data-size]');
-  if(sy){ const i=+sy.dataset.sys; S.garments[i].sys=sy.value; S.garments[i].size='';
-          recompute(); renderStep2(); return; }
-  if(sz){ S.garments[+sz.dataset.size].size=sz.value; recompute(); renderStep2(); }
-});
-$('s2').addEventListener('input', e=>{
-  const ci=e.target.closest('[data-cmin]');
-  if(!ci) return;
-  const [i,key]=ci.dataset.cmin.split(':');
-  const g=S.garments[+i]; g.cm=g.cm||{};
-  g.cm[key] = ci.value==='' ? null : +ci.value;
-  recompute();
-  // yalnız nəticə sətrini yenilə ki, yazarkən fokus itməsin
-  renderList();
-  const est=garmentEst(g), card=ci.closest('.gcard'), out=card&&card.querySelector('.gout');
-  if(out) out.innerHTML = est.w>0
-    ? `→ ${Object.entries(est.vals).map(([k,v])=>`${MEAS[k].ad} <b>${v} sm</b>`).join(' · ')}`
-    : 'Ölçünü seç və ya santimetrlə ölç — nəticə burada görünəcək.';
-});
-
-$('back1').addEventListener('click', ()=>go(1));
-$('go3').addEventListener('click', ()=>go(3));
-
-/* ── 3-cü addım ── */
-$('cmp').addEventListener('click', ()=>{
-  const eu = $('f-eu').value.trim()===''   ? null : +$('f-eu').value;
-  const ml = $('f-flen').value.trim()===''  ? null : +$('f-flen').value;
-  if(eu!=null && !(eu>=33 && eu<=50)) return showErr('e3','EU nömrəsi 33–50 aralığında olmalıdır.');
-  if(ml!=null && !(ml>=18 && ml<=35)) return showErr('e3','Ayaq uzunluğu 18–35 sm aralığında olmalıdır.');
-  if(eu==null && ml==null) return showErr('e3','Ən azı birini doldur — nömrəni və ya ölçdüyün uzunluğu.');
-  hideErr('e3');
-  S.shoe = { eu, measured:ml, width:$('f-width').value };
-  if(ml!=null){ S.manual.foot = Math.round(ml*10)/10; recompute(); }
-  renderShoeTable(); renderCompare();
-  $('cmpout').scrollIntoView({behavior:'smooth', block:'nearest'});
-});
-$('back2').addEventListener('click', ()=>go(2));
-$('go4').addEventListener('click', ()=>go(4));
-
-/* ── 4-cü addım ── */
-$('back3').addEventListener('click', ()=>go(2));
-$('restart').addEventListener('click', ()=>{
-  S.sel=null; S.editing=null; S.src='prior'; S.manual={}; S.img={}; S.imgW={};
-  S.garments=[]; S.shoe={eu:null,measured:null,width:'n'};
-  $('gpick').hidden=true; $('addg').textContent='+ Geyim əlavə et';
-  $('f-eu').value=''; $('f-flen').value=''; $('f-width').value='n';
-  $('cmpout').innerHTML=''; go(1);
-});
 
 /* başlanğıc */
 recompute();
 </script>
 
 <script>
-/* Ana ekrana əlavə et — quraşdırma təklifi */
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt', e=>{
   e.preventDefault(); deferredPrompt=e;
@@ -1480,7 +1630,6 @@ window.addEventListener('beforeinstallprompt', e=>{
   b.onclick=async()=>{ b.remove(); deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; };
   document.body.appendChild(b);
 });
-/* oflayn işləməsi üçün */
 if('serviceWorker' in navigator)
   window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
