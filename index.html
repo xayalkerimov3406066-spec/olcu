@@ -32,7 +32,8 @@
   --ink:#1a1917; --muted:#6d6a64; --line:#e2dfd8;
   --accent:#0c6b57; --accent-ink:#ffffff; --accent-soft:#e2efeb;
   --ok:#1c7a46; --warn:#935508; --bad:#a93226;
-  --figure:#d9d5cc; --figure-2:#c6c0b4; --cloth:#cdc8bd; --cloth-line:#8f887c;
+  --figure:#dcd8d0; --figure-2:#bdb7aa; --skin-sh:#cac4b8; --wear:#98a1ab; --wear-2:#5d6670;
+  --cloth:#cdc8bd; --cloth-line:#8f887c;
   --m-shoulder:#0e7490; --m-chest:#1d4ed8; --m-underbust:#0369a1; --m-waist:#a16207;
   --m-hip:#7e22ce; --m-sleeve:#15803d; --m-inseam:#be185d; --m-foot:#c2410c;
   --font-ui:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
@@ -43,7 +44,8 @@
   --ink:#e8eaee; --muted:#959aa4; --line:#2a2d35;
   --accent:#3ed3ab; --accent-ink:#06211a; --accent-soft:#102a23;
   --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
-  --figure:#282c35; --figure-2:#343945; --cloth:#2f3540; --cloth-line:#737b8a;
+  --figure:#2b303a; --figure-2:#3b4150; --skin-sh:#343a46; --wear:#4d5663; --wear-2:#737e8c;
+  --cloth:#2f3540; --cloth-line:#737b8a;
   --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-underbust:#38bdf8; --m-waist:#fbbf24;
   --m-hip:#c084fc; --m-sleeve:#4ade80; --m-inseam:#f472b6; --m-foot:#fb923c;
   color-scheme:dark;
@@ -53,7 +55,8 @@
   --ink:#e8eaee; --muted:#959aa4; --line:#2a2d35;
   --accent:#3ed3ab; --accent-ink:#06211a; --accent-soft:#102a23;
   --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
-  --figure:#282c35; --figure-2:#343945; --cloth:#2f3540; --cloth-line:#737b8a;
+  --figure:#2b303a; --figure-2:#3b4150; --skin-sh:#343a46; --wear:#4d5663; --wear-2:#737e8c;
+  --cloth:#2f3540; --cloth-line:#737b8a;
   --m-shoulder:#22d3ee; --m-chest:#7aa9ff; --m-underbust:#38bdf8; --m-waist:#fbbf24;
   --m-hip:#c084fc; --m-sleeve:#4ade80; --m-inseam:#f472b6; --m-foot:#fb923c;
   color-scheme:dark;
@@ -739,6 +742,7 @@ function drawArt(cat, sex, mini){
   return s + '</svg>';
 }
 /* ═════════ VƏZİYYƏT ═════════ */
+let figSeq = 0;
 let S = { sex:'m', h:175, w:75,
           prior:{}, img:{}, imgW:{}, manual:{}, own:{},      // own: kateqoriya → hazırkı ölçü
           body:{}, conf:{}, footAuto:0, src:'prior',
@@ -929,7 +933,8 @@ function buildFigure(keys, sel){
     if(!on(k) || (sel && sel!==k)) return '';
     const dir = anchor==='end' ? 1 : -1;
     return `<g class="mk" data-m="${k}" opacity="${sel===k?1:.95}">
-      <line x1="${x+dir*3}" y1="${y}" x2="${edgeX}" y2="${y}" style="stroke:${C(k)}" stroke-width="1" opacity=".45"/>
+      <line x1="${x+dir*3}" y1="${y}" x2="${edgeX}" y2="${y}" style="stroke:${C(k)}" stroke-width="1" opacity=".5"/>
+      <circle cx="${x+dir*3}" cy="${y}" r="2.6" style="fill:${C(k)}" opacity=".8"/>
       <text x="${x}" y="${y-3}" text-anchor="${anchor}" style="fill:var(--muted)" font-size="10.5">${MEAS[k].ad}</text>
       <text x="${x}" y="${y+12}" text-anchor="${anchor}" style="fill:${C(k)}" font-size="14" font-weight="700">${b[k].toFixed(1)} sm</text>
     </g>`;
@@ -985,7 +990,66 @@ function buildFigure(keys, sel){
     <text x="34" y="${hy+10}" style="fill:var(--ink)" font-size="12.5" font-weight="700">${h} sm</text>
   </g>`;
 
-  /* sol/sağ etiket sütunları — toqquşmamaq üçün növbə ilə */
+  /* ── saç ── */
+  const hw = headRx*1.03;
+  const hairLow = sex==='f' ? 0.96 : 0.80;
+  const hair = `<path d="M ${CX-hw} ${TOP+headRy*hairLow}
+      C ${CX-hw} ${TOP-headRy*0.14} ${CX+hw} ${TOP-headRy*0.14} ${CX+hw} ${TOP+headRy*hairLow}
+      C ${CX+headRx*0.66} ${TOP+headRy*0.44} ${CX-headRx*0.66} ${TOP+headRy*0.44} ${CX-hw} ${TOP+headRy*hairLow} Z"
+      style="fill:var(--figure-2)"/>`
+    + (sex==='f' ? `<ellipse cx="${CX}" cy="${TOP-headRy*0.06}" rx="${headRx*0.44}" ry="${headRy*0.22}"
+      style="fill:var(--figure-2)"/>` : '');
+
+  /* ── geyim: gövdə konturuna kəsilir ── */
+  const UID = 'fg'+(figSeq++);
+  const topY0 = Y(P.sh)-4;
+  const topY1 = sex==='f' ? Y(P.waist)+10 : Y(P.hip)-2;
+  const botY0 = sex==='f' ? Y(P.waist)+4  : Y(P.hip)-12;
+  const botY1 = sex==='f' ? Y(P.ank)+2    : Y(P.knee)-24;
+  const wear = `
+    <defs>
+      <clipPath id="${UID}"><path d="${torso}"/></clipPath>
+      <linearGradient id="${UID}s" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fff" stop-opacity=".16"/>
+        <stop offset=".34" stop-color="#fff" stop-opacity="0"/>
+        <stop offset=".58" stop-color="#000" stop-opacity="0"/>
+        <stop offset="1" stop-color="#000" stop-opacity=".15"/>
+      </linearGradient>
+    </defs>
+    <g clip-path="url(#${UID})">
+      <rect x="0" y="${botY0}" width="${W}" height="${botY1-botY0}" style="fill:var(--wear-2)"/>
+      <rect x="0" y="${topY0}" width="${W}" height="${topY1-topY0}" style="fill:var(--wear)"/>
+      <path d="M ${CX-neckHw*1.8} ${topY0-10} L ${CX+neckHw*1.8} ${topY0-10}
+        L ${CX+neckHw*1.8} ${topY0+2} Q ${CX} ${topY0+20} ${CX-neckHw*1.8} ${topY0+2} Z"
+        style="fill:var(--figure)"/>
+      <line x1="0" y1="${botY0}" x2="${W}" y2="${botY0}" style="stroke:var(--cloth-line)" stroke-width="2" opacity=".45"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="url(#${UID}s)"/>
+    </g>`;
+
+  /* qol və baş üçün eyni yumşaq kölgə */
+  const armShade = `<g opacity=".12" style="stroke:#000" fill="none" stroke-linecap="round">
+    <path d="M ${CX+aX0} ${aY0} L ${CX+aX1} ${aY1}" stroke-width="${upW}"/>
+    <path d="M ${CX+aX1} ${aY1} L ${CX+aX2} ${aY2}" stroke-width="${foW}"/>
+  </g>`;
+
+  /* qol üstündə qısa qol */
+  const slvF = sex==='f' ? 0.20 : 0.36;
+  const slv = d => `<path d="M ${CX+d*aX0} ${aY0}
+      L ${CX+d*(aX0+(aX1-aX0)*slvF)} ${aY0+(aY1-aY0)*slvF}"
+      style="stroke:var(--wear)" stroke-width="${upW+2}" stroke-linecap="round" fill="none"/>`;
+
+  /* ── anatomik incə xətlər ── */
+  const anat = `<g style="stroke:var(--cloth-line)" fill="none" stroke-width="1.2" opacity=".42">
+    <path d="M ${CX-hSh*0.42} ${Y(P.sh)+11} Q ${CX} ${Y(P.sh)+19} ${CX+hSh*0.42} ${Y(P.sh)+11}"/>
+    <path d="M ${CX-kCx-kneeH*0.55} ${Y(P.knee)} Q ${CX-kCx} ${Y(P.knee)+7} ${CX-kCx+kneeH*0.55} ${Y(P.knee)}"/>
+    <path d="M ${CX+kCx-kneeH*0.55} ${Y(P.knee)} Q ${CX+kCx} ${Y(P.knee)+7} ${CX+kCx+kneeH*0.55} ${Y(P.knee)}"/>
+    <path d="M ${CX-aX1-upW*0.3} ${aY1} Q ${CX-aX1} ${aY1+5} ${CX-aX1+upW*0.3} ${aY1}"/>
+    <path d="M ${CX+aX1-upW*0.3} ${aY1} Q ${CX+aX1} ${aY1+5} ${CX+aX1+upW*0.3} ${aY1}"/>
+    <line x1="${CX-aCx-ankH}" y1="${Y(P.ank)}" x2="${CX-aCx+ankH}" y2="${Y(P.ank)}"/>
+    <line x1="${CX+aCx-ankH}" y1="${Y(P.ank)}" x2="${CX+aCx+ankH}" y2="${Y(P.ank)}"/>
+  </g>`;
+
+  /* sol etiket sütunu */
   const leftKeys  = ['shoulder','chest','underbust','waist','hip'].filter(on);
   const leftY = { shoulder:yShL, chest:Y(P.chest), underbust:Y(P.under), waist:Y(P.waist), hip:Y(P.hip) };
   const leftEdge = { shoulder:CX-hSh-4, chest:CX-hCh-6, underbust:CX-hUn-6, waist:CX-hWa-6, hip:CX-hHi-6 };
@@ -994,12 +1058,19 @@ function buildFigure(keys, sel){
     aria-label="Ölçülərin bədən üzərində yerləşməsi">
     <line x1="14" y1="${TOP+FH}" x2="${W-14}" y2="${TOP+FH}" style="stroke:var(--line)" stroke-width="1" stroke-dasharray="3 5"/>
     ${heightMark}
+    ${hair}
     <ellipse cx="${CX}" cy="${TOP+headRy}" rx="${headRx}" ry="${headRy}" style="fill:var(--figure)"/>
+    <path d="M ${CX} ${TOP} A ${headRx} ${headRy} 0 0 1 ${CX} ${TOP+headRy*2} Z"
+      style="fill:#000" opacity=".09"/>
     <rect x="${CX-neckHw}" y="${Y(P.chin)-3}" width="${neckHw*2}" height="${Y(P.sh)-Y(P.chin)+8}" rx="${neckHw*0.5}" style="fill:var(--figure)"/>
-    ${arm(-1)}${arm(1)}
+    <rect x="${CX}" y="${Y(P.chin)-3}" width="${neckHw}" height="${Y(P.sh)-Y(P.chin)+8}" style="fill:#000" opacity=".09"/>
+    ${arm(-1)}${arm(1)}${armShade}
     <path d="${torso}" style="fill:var(--figure)"/>
+    ${wear}
+    ${slv(-1)}${slv(1)}
     <ellipse cx="${CX-aCx}" cy="${Y(P.ank)+11}" rx="${ankH*1.3}" ry="11" style="fill:var(--figure-2)"/>
     <ellipse cx="${CX+aCx}" cy="${Y(P.ank)+11}" rx="${ankH*1.3}" ry="11" style="fill:var(--figure-2)"/>
+    ${anat}
     ${circMark('hip',Y(P.hip),hHi*0.99)}
     ${circMark('waist',Y(P.waist),hWa*0.99)}
     ${circMark('underbust',Y(P.under),hUn*0.99)}
@@ -1616,7 +1687,6 @@ $('camflip').addEventListener('click', ()=>{
 /* başlanğıc */
 recompute();
 </script>
-
 <script>
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt', e=>{
