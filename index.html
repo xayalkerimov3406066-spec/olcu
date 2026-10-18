@@ -235,6 +235,66 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
 .foot{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);
   font-size:12px;color:var(--muted);line-height:1.6}
 
+/* ---- sürüşdürücü (klaviatura yox) ---- */
+.ruler{margin-top:4px}
+.ruler .val{font-family:var(--font-num);font-size:36px;font-weight:700;letter-spacing:-.03em;
+  text-align:center;line-height:1.05}
+.ruler .val small{font-size:14px;font-weight:500;color:var(--muted);margin-left:5px;letter-spacing:0}
+.ruler .ticks{display:flex;justify-content:space-between;padding:0 15px;margin-bottom:-9px;height:13px}
+.ruler .ticks i{width:1px;background:var(--line);height:8px;align-self:flex-end}
+.ruler .ticks i.big{height:13px;background:var(--muted);opacity:.45}
+.rends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);
+  font-family:var(--font-num);margin-top:-4px;padding:0 2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;
+  padding:0;border:0;margin:0;height:42px;cursor:grab}
+input[type=range]:active{cursor:grabbing}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:99px}
+input[type=range]::-moz-range-track{height:4px;background:var(--line);border-radius:99px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:99px;
+  background:var(--accent);border:3px solid var(--card);margin-top:-14px;box-shadow:0 2px 9px rgba(0,0,0,.22)}
+input[type=range]::-moz-range-thumb{width:32px;height:32px;border-radius:99px;background:var(--accent);
+  border:3px solid var(--card);box-shadow:0 2px 9px rgba(0,0,0,.22)}
+input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--accent);outline-offset:3px}
+
+/* ---- cins kartları ---- */
+.sexrow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.sexcard{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:15px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--ink);font-weight:500;font-size:14.5px}
+.sexcard.on{border-color:var(--accent);background:var(--accent-soft)}
+.sexcard svg{width:30px;height:auto}
+
+/* ---- seçim çipləri ---- */
+.pick{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.pick button{flex:0 0 auto;padding:10px 14px;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font-size:14px;font-weight:500;text-align:left;line-height:1.3}
+.pick button.on{border-color:var(--accent);background:var(--accent-soft)}
+.pick button small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+.pick.sz button{min-width:54px;text-align:center;font-family:var(--font-num);font-weight:600}
+
+/* ---- nəticə ---- */
+.result{text-align:center;padding:22px 16px}
+.result .huge{font-size:60px;font-weight:700;letter-spacing:-.04em;line-height:1;color:var(--accent)}
+.result .cap{font-size:13.5px;color:var(--muted);margin-top:9px}
+.meter{display:flex;gap:4px;margin-top:12px;justify-content:center}
+.meter i{width:28px;height:4px;border-radius:99px;background:var(--line)}
+.meter i.on{background:var(--accent)}
+.quick{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.quick div{text-align:center}
+.quick .q{font-family:var(--font-num);font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.quick .l{font-size:11.5px;color:var(--muted);margin-top:1px}
+
+.badge-time{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  color:var(--accent);background:var(--accent-soft);padding:5px 11px;border-radius:99px;margin-bottom:11px}
+.sticky{position:sticky;bottom:0;background:linear-gradient(transparent,var(--paper) 24%);
+  padding:22px 0 calc(6px + env(safe-area-inset-bottom,0px));margin-top:18px;z-index:4}
+.sticky button{width:100%;margin:0}
+.sticky button+button{margin-top:9px}
+.legal{font-size:11.5px;color:var(--muted);text-align:center;margin:10px 0 0;line-height:1.5}
+.skip{display:block;width:100%;background:none;border:0;color:var(--muted);font-size:13.5px;
+  font-weight:500;padding:12px;margin-top:4px;text-decoration:underline}
+.minifig{max-width:190px;margin:0 auto}
+.minifig svg{width:100%;height:auto;display:block}
+
 /* ---- kamera (foto kontekst: rənglər hər iki temada eynidir) ---- */
 #cam{position:fixed;inset:0;z-index:50;background:#000;display:none}
 #cam.on{display:block}
@@ -268,57 +328,121 @@ tr.hl td{background:var(--accent-soft);font-weight:600}
   <div class="bar"><i class="on"></i><i></i><i></i><i></i></div>
 </div>
 
-<!-- ══════════ 1 — SƏN ══════════ -->
+<!-- ══════════ 1 — SƏNİ TANIYAQ ══════════ -->
 <section class="step on" id="s1">
-  <h1>Bir dəfə doldur, hər alışda ölçü seçmə</h1>
-  <p class="lead">Boyunu və çəkini yaz — sistem bədən ölçülərini hesablayacaq. Sonra almaq istədiyin geyim növünü seçirsən.</p>
+  <span class="badge-time">⏱ 30 saniyə</span>
+  <h1>Ölçünü tapaq</h1>
+  <p class="lead">İki sürüşdürücü — yazmaq lazım deyil.</p>
 
   <div class="card">
-    <div class="field">
-      <label for="f-sex">Cins</label>
-      <select id="f-sex"><option value="m">Kişi</option><option value="f">Qadın</option></select>
+    <label>Cins</label>
+    <div class="sexrow">
+      <button class="sexcard" data-sex="m" type="button">
+        <svg viewBox="0 0 24 30"><circle cx="12" cy="5" r="4" fill="currentColor"/>
+        <path d="M6 12h12l1 9h-3l-1 8H9l-1-8H5z" fill="currentColor"/></svg>Kişi</button>
+      <button class="sexcard" data-sex="f" type="button">
+        <svg viewBox="0 0 24 30"><circle cx="12" cy="5" r="4" fill="currentColor"/>
+        <path d="M12 11c4 0 6 4 7 10H5c1-6 3-10 7-10z" fill="currentColor"/>
+        <path d="M9 22h6l-1 7h-4z" fill="currentColor"/></svg>Qadın</button>
     </div>
-    <div class="grid2" style="margin-top:14px">
-      <div><label for="f-h">Boy</label>
-        <div class="unit"><input id="f-h" type="number" inputmode="numeric" value="175" min="130" max="215"><span>sm</span></div></div>
-      <div><label for="f-w">Çəki</label>
-        <div class="unit"><input id="f-w" type="number" inputmode="numeric" value="75" min="35" max="200"><span>kq</span></div></div>
+
+    <div class="ruler" style="margin-top:20px">
+      <label for="r-h">Boy</label>
+      <div class="val" id="v-h">175<small>sm</small></div>
+      <div class="ticks" id="t-h"></div>
+      <input id="r-h" type="range" min="140" max="210" step="1" value="175" aria-label="Boy, sm">
+      <div class="rends"><span>140</span><span>210</span></div>
     </div>
-    <div id="e1" class="err" hidden></div>
+
+    <div class="ruler" style="margin-top:14px">
+      <label for="r-w">Çəki</label>
+      <div class="val" id="v-w">75<small>kq</small></div>
+      <div class="ticks" id="t-w"></div>
+      <input id="r-w" type="range" min="40" max="160" step="1" value="75" aria-label="Çəki, kq">
+      <div class="rends"><span>40</span><span>160</span></div>
+    </div>
   </div>
+
+  <div class="minifig" id="live-fig" style="margin-top:14px"></div>
+
+  <div class="sticky">
+    <button id="go-result">Ölçümü göstər</button>
+    <p class="legal">Davam etməklə ölçülərinin hesablanmasına razı olursan.
+      Məlumat satıcıya ötürülmür, istədiyin vaxt silinir.</p>
+  </div>
+</section>
+
+<!-- ══════════ 2 — BUDUR ÖLÇÜN ══════════ -->
+<section class="step" id="s2">
+  <h1>Sənin ölçün</h1>
+  <p id="r2-sub">Boy və çəkiyə görə hesablandı.</p>
+
+  <div class="card result">
+    <div class="huge" id="r2-size">—</div>
+    <div class="cap" id="r2-cap"></div>
+    <div class="meter" id="r2-meter"></div>
+    <div class="quick" id="r2-quick"></div>
+  </div>
+
+  <div class="figbox" id="r2-fig" style="margin-top:12px"></div>
 
   <div class="note">
-    <b>Məlumatın harada qalır</b>
-    <ul>
-      <li>Ölçülərin satıcıya ötürülmür və profilində görünmür.</li>
-      <li>İstədiyin vaxt tam silə bilərsən.</li>
-      <li>Hesablama telefonunda aparılır, şəkil heç yerə göndərilmir.</li>
-    </ul>
+    <b>Bir sual daha — ölçü dəqiqləşsin</b><br>
+    Son aldığın geyimin ölçüsünü desən, sistem sənin bədənini daha yaxşı tanıyacaq.
+    15 saniyə çəkir.
   </div>
 
-  <label class="chk"><input type="checkbox" id="c-age">
-    <span><b>18 yaşım tamam olub.</b> Bu funksiya yalnız yetkinlik yaşına çatmış istifadəçilər üçündür.</span></label>
-  <label class="chk"><input type="checkbox" id="c-ok">
-    <span>Ölçülərimin hesablanması və hesabımda saxlanması ilə razıyam.</span></label>
-
-  <button class="wide" id="go2" disabled>Davam et</button>
-  <button class="ghost wide" id="goscan" disabled style="margin-top:9px">Kamera ilə skan et — daha dəqiq</button>
+  <div id="cam-gate" hidden>
+    <div class="card" style="margin-top:12px">
+      <h3>Kamera ilə skan</h3>
+      <p style="font-size:13.5px">Şəkil telefonunda emal olunur, heç yerə göndərilmir və analizdən
+        dərhal sonra silinir. Üz tanınmır.</p>
+      <label class="chk"><input type="checkbox" id="c-age">
+        <span><b>18 yaşım tamam olub.</b> Bu funksiya yalnız yetkinlik yaşına çatmış istifadəçilər üçündür.</span></label>
+      <label class="chk"><input type="checkbox" id="c-ok">
+        <span>Şəklimin cihazımda emal olunmasına razıyam.</span></label>
+      <button class="wide" id="cam-start" disabled>Kameranı aç</button>
+    </div>
+  </div>
   <div id="e-cam" class="err" hidden></div>
-</section>
 
-<!-- ══════════ 2 — KATEQORİYA ══════════ -->
-<section class="step" id="s2">
-  <h1>Nə almaq istəyirsən?</h1>
-  <p>Geyim növünü seç — yalnız həmin geyimə aid ölçülər açılacaq. İstədiyin qədər kateqoriya doldura bilərsən.</p>
-  <div class="catgrid" id="catgrid"></div>
-  <div class="btnrow">
-    <button class="ghost" id="back1">Geri</button>
-    <button id="go4">Ölçülərimə bax</button>
+  <div class="sticky">
+    <button id="go-anchor">Dəqiqləşdir · 15 saniyə</button>
+    <button class="ghost" id="go-cam-gate">Kamera ilə skan et</button>
+    <button class="skip" id="skip-anchor">Bu kifayətdir, ölçülərimə keç</button>
   </div>
 </section>
 
-<!-- ══════════ 3 — KATEQORİYA DETALI ══════════ -->
+<!-- ══════════ 3 — DƏQİQLƏŞDİR ══════════ -->
 <section class="step" id="s3">
+  <h1>Son aldığın geyim</h1>
+  <p>Yadındakı bir geyimi götür — köynək, futbolka, sviter. Hansı olduğu fərqi yoxdur.</p>
+
+  <div class="card">
+    <label>1 · Haradan idi?</label>
+    <div class="pick" id="a-origin"></div>
+
+    <div id="a-step2" hidden>
+      <label style="margin-top:18px">2 · Hansı ölçü idi?</label>
+      <div class="pick sz" id="a-size"></div>
+    </div>
+
+    <div id="a-step3" hidden>
+      <label style="margin-top:18px">3 · Necə oturdu?</label>
+      <div class="pick" id="a-fit"></div>
+    </div>
+  </div>
+
+  <div id="a-out"></div>
+
+  <div class="sticky">
+    <button id="a-done">Hazırdır</button>
+    <button class="skip" id="a-skip">Bunu bilmirəm, keç</button>
+  </div>
+</section>
+
+<!-- ══════════ 5 — KATEQORİYA DETALI ══════════ -->
+<section class="step" id="s5">
   <h1 id="c-title">—</h1>
   <p id="c-sub"></p>
 
@@ -550,6 +674,24 @@ const EU2BODY = {
   ust:{ m:eu=>({lo:2*eu+1,   hi:2*eu+7}),  f:eu=>({lo:2*eu+9.5, hi:2*eu+14.5}) },
   alt:{ m:eu=>({lo:2*eu-17,  hi:2*eu-11}), f:eu=>({lo:2*eu-6.5, hi:2*eu-1.5}) }
 };
+/* ═════ ölçü mənşəyi — brend adı yox, hansı sistemə görə kəsilib ═════
+   shift: etiketdəki ölçünü həqiqi EU-ya çevirən düzəliş (EU vahidi, 1 pillə = 2).
+   Çin ölçüsü kiçik gəlir → mənfi, ABŞ böyük gəlir → müsbət.
+   ⚠ Bu dəyərlər başlanğıc təxminidir; yerli data ilə kalibrasiya olunmalıdır.   */
+const ORIGINS = [
+  {id:'tr',    ad:'Türkiyə',       alt:'LC Waikiki, Koton, DeFacto, Mavi', shift: 0, w:0.55},
+  {id:'eu',    ad:'Avropa',        alt:'Zara, H&M, Bershka, Mango',        shift:-1, w:0.55},
+  {id:'cn',    ad:'Çin / onlayn',  alt:'Shein, AliExpress, Temu',          shift:-3, w:0.45},
+  {id:'us',    ad:'ABŞ brendi',    alt:'Nike, Levi\'s, Tommy, Polo',       shift:+3, w:0.45},
+  {id:'local', ad:'Yerli bazar',   alt:'Butik, bazar, markası bilinmir',   shift: 0, w:0.32}
+];
+const FIT3 = [
+  {id:'t',  qisa:'Dar oldu',    pick:'hi',  wm:0.85},
+  {id:'ok', qisa:'Tam oturdu',  pick:'mid', wm:1.00},
+  {id:'b',  qisa:'Bol oldu',    pick:'lo',  wm:0.85}
+];
+const ANCHOR_SIZES = ['XS','S','M','L','XL','XXL','3XL'];
+
 const FIT = [
   {id:'t2', qisa:'Sıxır',   ad:'Çox dar',    pick:'hi+', d:+5,   w:0.25},
   {id:'t1', qisa:'Dar',     ad:'Bir az dar', pick:'hi',  d:+2,   w:0.40},
@@ -744,7 +886,7 @@ function drawArt(cat, sex, mini){
 /* ═════════ VƏZİYYƏT ═════════ */
 let figSeq = 0;
 let S = { sex:'m', h:175, w:75,
-          prior:{}, img:{}, imgW:{}, manual:{}, own:{},      // own: kateqoriya → hazırkı ölçü
+          prior:{}, img:{}, imgW:{}, manual:{}, own:{}, anchor:{origin:null,size:null,fit:'ok'},
           body:{}, conf:{}, footAuto:0, src:'prior',
           cat:null, sel:null, editing:null, step:1, pend:null, infoSeen:false };
 
@@ -825,11 +967,25 @@ function ownEst(cat){
   return {vals, w:fit.w, kind:'size'};
 }
 
+/* lövbər geyimdən bədən ölçüsü */
+function anchorEst(){
+  const a=S.anchor;
+  if(!a || !a.origin || !a.size) return {vals:{}, w:0};
+  const o=ORIGINS.find(x=>x.id===a.origin); if(!o) return {vals:{}, w:0};
+  const intl=SYSTEMS.ust.find(x=>x.id==='intl');
+  const eu=intl.eu(a.size,S.sex)+o.shift;
+  const rng=EU2BODY.ust[S.sex](eu);
+  const f=FIT3.find(x=>x.id===a.fit)||FIT3[1];
+  const v = f.pick==='hi' ? rng.hi+1.5 : f.pick==='lo' ? rng.lo-1.5 : (rng.lo+rng.hi)/2;
+  return {vals:{chest:r1(v)}, w:o.w*f.wm};
+}
+
 /* bütün mənbələri çəki ilə birləşdir */
 function recompute(){
   S.prior = priorBody();
   S.footAuto = S.prior.foot;
   const ests = Object.keys(S.own).map(ownEst);
+  ests.push(anchorEst());
   S.conf = {};
   for(const k of ORDER){
     if(S.manual[k]!=null){ S.body[k]=S.manual[k]; S.conf[k]=1.25; continue; }
@@ -840,14 +996,19 @@ function recompute(){
     S.body[k] = r1(src.reduce((a,b)=>a+b.v*b.w,0)/W);
     S.conf[k] = W;
   }
+  /* döşaltının müstəqil mənbəyi yoxdursa, birləşdirilmiş döşdən çıxarılır —
+     yoxsa lövbər döşü dəyişəndə kasa hərfi səhv çıxır */
+  const underSrc = S.manual.underbust!=null || S.img.underbust!=null ||
+    ests.some(e=>e.w>0 && e.vals.underbust!=null);
+  if(!underSrc) S.body.underbust = r1(S.body.chest*UNDER[S.sex] - 1);
 }
 const confLabel = k => S.manual[k]!=null ? 'özün yazdın'
-  : (S.conf[k]||0) >= 1.0 ? 'yüksək' : (S.conf[k]||0) >= 0.62 ? 'orta' : 'təxmini';
+  : (S.conf[k]||0) >= 0.85 ? 'yüksək' : (S.conf[k]||0) >= 0.55 ? 'orta' : 'təxmini';
 
 /* ═════════ BƏDƏN MODELİ ═════════
    Fiqur alıcının öz ölçülərinə görə çəkilir; miqyas boydan gəlir.
    keys = göstəriləcək ölçülər, sel = seçilmiş ölçü (nöqtələri açılır)   */
-function buildFigure(keys, sel){
+function buildFigure(keys, sel, bare){
   const b=S.body, sex=S.sex, h=S.h;
   const bmi = S.w/Math.pow(h/100,2);
   const rr = k => clamp(DEPTH[sex][k] + DEPTH_BMI*(bmi-22), 0.55, 0.98);
@@ -860,13 +1021,20 @@ function buildFigure(keys, sel){
     ? {chin:.133,neck:.155,sh:.188,chest:.272,under:.318,waist:.378,hip:.478,crotch:.538,elb:.392,wr:.524,knee:.716,ank:.958}
     : {chin:.132,neck:.152,sh:.185,chest:.265,under:.312,waist:.383,hip:.470,crotch:.537,elb:.390,wr:.520,knee:.714,ank:.958};
 
-  const FH=600, TOP=36, s=FH/h, Y=f=>TOP+f*FH;
+  /* bare rejimdə miqyas sabitdir (1 sm = eyni piksel), ona görə uzun adam
+     həqiqətən uzun çəkilir — sürüşdürücünü çəkəndə fiqur gözlə uzanır */
+  const BARE_H = 650, BARE_W = 300, PPC = 600/210;
+  const FH = bare ? h*PPC : 600;
+  const TOP = bare ? (BARE_H - FH - 20) : 36;
+  const s = FH/h, Y = f => TOP+f*FH;
   const hSh=b.shoulder/2*s, hCh=wCh/2*s, hUn=wUn/2*s, hWa=wWa/2*s, hHi=wHi/2*s;
   const upW=0.055*h*s, foW=0.044*h*s;
   const aX0=hSh*0.86, aY0=Y(P.sh)+3, aX1=hSh*1.08, aY1=Y(P.elb), aX2=hSh*1.16, aY2=Y(P.wr);
   const maxHalf = Math.max(hSh,hCh,hWa,hHi, aX2+foW/2+3);
-  const ML=140, MR=120;
-  const CX=Math.round(maxHalf+ML), W=Math.round(maxHalf*2+ML+MR), H=TOP+FH+112;
+  const ML = bare ? 26 : 140, MR = bare ? 26 : 120;
+  const CX = bare ? BARE_W/2 : Math.round(maxHalf+ML);
+  const W  = bare ? BARE_W    : Math.round(maxHalf*2+ML+MR);
+  const H  = bare ? BARE_H    : TOP+FH+112;
   const LX=CX-maxHalf-16, RX=CX+maxHalf+16;
   const legCx=hHi*0.50, thighH=hHi*0.48;
   const kneeH=0.029*h*s, ankH=0.021*h*s, kCx=legCx*0.86, aCx=legCx*0.74;
@@ -930,7 +1098,7 @@ function buildFigure(keys, sel){
     </g>`;
   };
   const label=(k,x,y,anchor,edgeX)=>{
-    if(!on(k) || (sel && sel!==k)) return '';
+    if(bare || !on(k) || (sel && sel!==k)) return '';
     const dir = anchor==='end' ? 1 : -1;
     return `<g class="mk" data-m="${k}" opacity="${sel===k?1:.95}">
       <line x1="${x+dir*3}" y1="${y}" x2="${edgeX}" y2="${y}" style="stroke:${C(k)}" stroke-width="1" opacity=".5"/>
@@ -976,13 +1144,13 @@ function buildFigure(keys, sel){
       stroke-width="${2.4*sw('foot')}" stroke-linecap="round"/>
     ${tick(fx0,fy+11,13,90,'foot')}${tick(fx1,fy+11,13,90,'foot')}
     ${pin(fx0, fy+30, '1', 'foot')}${pin(fx1, fy+30, '2', 'foot')}
-    ${sel&&sel!=='foot'?'':`<text x="${CX}" y="${fy+32}" text-anchor="middle" style="fill:${C('foot')}"
+    ${bare || (sel&&sel!=='foot') ? '' : `<text x="${CX}" y="${fy+32}" text-anchor="middle" style="fill:${C('foot')}"
       font-size="13" font-weight="700">${b.foot.toFixed(1)} sm</text>
     <text x="${CX}" y="${fy-32}" text-anchor="middle" style="fill:var(--muted)" font-size="10.5">Ayaq uzunluğu (yandan)</text>`}
   </g>`;
 
   const hy=TOP+FH*0.80;
-  const heightMark=`<g opacity="${sel?0.2:0.7}">
+  const heightMark = bare ? '' : `<g opacity="${sel?0.2:0.7}">
     <line x1="22" y1="${TOP}" x2="22" y2="${TOP+FH}" style="stroke:var(--muted)" stroke-width="1.4"/>
     <line x1="15.5" y1="${TOP}" x2="28.5" y2="${TOP}" style="stroke:var(--muted)" stroke-width="2.2"/>
     <line x1="15.5" y1="${TOP+FH}" x2="28.5" y2="${TOP+FH}" style="stroke:var(--muted)" stroke-width="2.2"/>
@@ -1056,7 +1224,7 @@ function buildFigure(keys, sel){
 
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
     aria-label="Ölçülərin bədən üzərində yerləşməsi">
-    <line x1="14" y1="${TOP+FH}" x2="${W-14}" y2="${TOP+FH}" style="stroke:var(--line)" stroke-width="1" stroke-dasharray="3 5"/>
+    ${bare?'':`<line x1="14" y1="${TOP+FH}" x2="${W-14}" y2="${TOP+FH}" style="stroke:var(--line)" stroke-width="1" stroke-dasharray="3 5"/>`}
     ${heightMark}
     ${hair}
     <ellipse cx="${CX}" cy="${TOP+headRy}" rx="${headRx}" ry="${headRy}" style="fill:var(--figure)"/>
@@ -1139,35 +1307,87 @@ function allSizes(cat){
 }
 
 /* ═════════ EKRANLAR ═════════ */
-const SCREENS = ['s1','s2','s3','sInfo','s4'];
-const STEPNO  = {s1:1, s2:2, s3:2, sInfo:2, s4:4};
+const SCREENS = ['s1','s2','s3','s4','s5','sInfo'];
+const STEPNO  = {s1:1, s2:2, s3:3, s4:3, s5:3, sInfo:3};
 function go(id){
-  S.step=id;
+  S.step=id; save();
   SCREENS.forEach(x=>$(x).classList.toggle('on', x===id));
   const n = STEPNO[id] || 1;
-  $('stepno').textContent = `${n} / 4`;
+  $('stepno').textContent = `${n} / 3`;
   document.querySelectorAll('.bar i').forEach((el,i)=>el.classList.toggle('on', i<n));
-  if(id==='s2') renderCats();
-  if(id==='s3') renderCat();
+  if(id==='s2') renderResult();
+  if(id==='s3') renderAnchor();
   if(id==='s4') renderMy();
+  if(id==='s5') renderCat();
   window.scrollTo({top:0, behavior:'instant'});
+}
+
+/* ═════ yadda saxlama — yalnız bu brauzerdə, serverə getmir ═════ */
+const KEY='cm-olcu-v1';
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify({
+    sex:S.sex, h:S.h, w:S.w, manual:S.manual, own:S.own, anchor:S.anchor,
+    img:S.img, imgW:S.imgW, src:S.src, infoSeen:S.infoSeen })); }catch(_){}
+}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(!d) return false;
+    Object.assign(S,{ sex:d.sex||'m', h:d.h||175, w:d.w||75, manual:d.manual||{},
+      own:d.own||{}, anchor:d.anchor||{origin:null,size:null,fit:'ok'},
+      img:d.img||{}, imgW:d.imgW||{}, src:d.src||'prior', infoSeen:!!d.infoSeen });
+    return true;
+  }catch(_){ return false; }
 }
 const showErr=(id,msg)=>{ const e=$(id); e.textContent=msg; e.hidden=false; };
 const hideErr=id=>{ $(id).hidden=true; };
 const visibleCats = () => CAT_ORDER.filter(k=>{
   const c=CATS[k].cins; return c==='hm' || c===S.sex; });
 
-/* ── kateqoriya şəbəkəsi ── */
-function renderCats(){
-  $('catgrid').innerHTML = visibleCats().map(k=>{
-    const has = !!S.own[k] && ownEst(k).w>0;
-    const sz = sizeFor(k);
-    return `<button class="cat ${has?'done':''}" data-cat="${k}" type="button">
-      ${drawArt(k, S.sex, true)}
-      <span class="nm">${CATS[k].qisa}</span>
-      <span class="sz ${has?'':'empty'}">${has ? sz.main : 'ölçü əlavə et'}</span>
-    </button>`;
-  }).join('');
+/* ── 1 · canlı mini fiqur ── */
+function renderLive(){
+  $('live-fig').innerHTML = buildFigure(['chest','waist','hip'], null, true);
+}
+
+/* ── 2 · nəticə ── */
+/* güvən pilləsi: prior tək 0.30 → 1; prior + etibarlı lövbər 0.85 → 3 */
+const CONF_N = () => { const c=S.conf.chest||0; return c>=0.85?3 : c>=0.55?2 : 1; };
+function renderResult(){
+  const sz = sizeFor('mayka');
+  $('r2-size').textContent = sz.main;
+  $('r2-cap').textContent = 'Üst geyim · ' + sz.sub;
+  const n = CONF_N();
+  $('r2-meter').innerHTML = [1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('');
+  $('r2-sub').textContent = n>=3 ? 'Ölçün dəqiqləşdirilib.'
+    : n===2 ? 'Yaxşı təxmin — bir sual daha dəqiqləşdirə bilər.'
+    : 'Boy və çəkiyə görə hesablandı.';
+  $('r2-quick').innerHTML = ['chest','waist','hip'].map(k=>
+    `<div><div class="q" style="color:var(${MEAS[k].v})">${S.body[k].toFixed(0)}</div>
+      <div class="l">${MEAS[k].qisa}</div></div>`).join('');
+  $('r2-fig').innerHTML = buildFigure(['chest','waist','hip','shoulder'], null);
+}
+
+/* ── 3 · lövbər sualı ── */
+function renderAnchor(){
+  const a=S.anchor;
+  $('a-origin').innerHTML = ORIGINS.map(o=>
+    `<button type="button" class="${a.origin===o.id?'on':''}" data-org="${o.id}">${o.ad}
+      <small>${o.alt}</small></button>`).join('');
+  $('a-step2').hidden = !a.origin;
+  $('a-size').innerHTML = ANCHOR_SIZES.map(z=>
+    `<button type="button" class="${a.size===z?'on':''}" data-asz="${z}">${z}</button>`).join('');
+  $('a-step3').hidden = !(a.origin && a.size);
+  $('a-fit').innerHTML = FIT3.map(f=>
+    `<button type="button" class="${a.fit===f.id?'on':''}" data-afit="${f.id}">${f.qisa}</button>`).join('');
+
+  const est=anchorEst();
+  $('a-out').innerHTML = est.w>0
+    ? `<div class="card result" style="padding:18px 16px">
+        <div class="huge" style="font-size:44px">${sizeFor('mayka').main}</div>
+        <div class="cap">CinarMall-da sənin üst geyim ölçün</div>
+        <div class="meter">${[1,2,3].map(i=>`<i class="${i<=CONF_N()?'on':''}"></i>`).join('')}</div>
+       </div>`
+    : '';
+  $('a-done').textContent = est.w>0 ? 'Hazırdır' : 'Keç';
 }
 
 /* ── kateqoriya detalı ── */
@@ -1349,81 +1569,122 @@ function renderMy(){
   $('payload').textContent = JSON.stringify(pay, null, 1);
 }
 /* ═════════ HADİSƏLƏR ═════════ */
-const sync = () => { const ok = $('c-age').checked && $('c-ok').checked;
-  $('go2').disabled = !ok; $('goscan').disabled = !ok; };
-$('c-age').addEventListener('change', sync);
-$('c-ok').addEventListener('change', sync);
 
-function readBasics(){
-  const h=+$('f-h').value, w=+$('f-w').value;
-  if(!(h>=130 && h<=215)){ showErr('e1','Boy 130–215 sm aralığında olmalıdır.'); return false; }
-  if(!(w>=35 && w<=200)){  showErr('e1','Çəki 35–200 kq aralığında olmalıdır.'); return false; }
-  hideErr('e1');
-  const sexChanged = S.sex !== $('f-sex').value;
-  S.sex=$('f-sex').value; S.h=h; S.w=w;
-  if(sexChanged){ S.own={}; S.manual={}; }     // cins dəyişsə ölçülər sıfırlanır
-  return true;
+/* ── 1 · cins və sürüşdürücülər ── */
+function paintTicks(id, n, every){
+  $(id).innerHTML = Array.from({length:n},(_,i)=>
+    `<i class="${i%every===0?'big':''}"></i>`).join('');
 }
-$('go2').addEventListener('click', ()=>{
-  if(!readBasics()) return;
-  S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go('s2');
-});
-$('goscan').addEventListener('click', ()=>{ if(!readBasics()) return; hideErr('e-cam'); startCam(); });
-$('back1').addEventListener('click', ()=>go('s1'));
-$('go4').addEventListener('click', ()=>go('s4'));
-$('back2').addEventListener('click', ()=>go('s2'));
-$('back3').addEventListener('click', ()=>go('s2'));
+paintTicks('t-h', 15, 2); paintTicks('t-w', 13, 2);
 
-function openCat(k){
-  S.cat=k; S.sel=null; S.editing=null;
-  if(!S.infoSeen){ S.pend=k; go('sInfo'); return; }
-  go('s3');
+function syncSex(){
+  document.querySelectorAll('[data-sex]').forEach(el=>
+    el.classList.toggle('on', el.dataset.sex===S.sex));
 }
-$('s2').addEventListener('click', e=>{
-  const el=e.target.closest('[data-cat]'); if(el) openCat(el.dataset.cat);
+function syncSliders(){
+  $('r-h').value=S.h; $('r-w').value=S.w;
+  $('v-h').innerHTML = S.h+'<small>sm</small>';
+  $('v-w').innerHTML = S.w+'<small>kq</small>';
+}
+$('s1').addEventListener('click', e=>{
+  const el=e.target.closest('[data-sex]'); if(!el) return;
+  if(S.sex!==el.dataset.sex){ S.sex=el.dataset.sex; S.own={}; S.manual={}; }
+  syncSex(); recompute(); renderLive(); save();
 });
-$('s4').addEventListener('click', e=>{
-  const el=e.target.closest('[data-cat]'); if(el) openCat(el.dataset.cat);
+['r-h','r-w'].forEach(id=>{
+  $(id).addEventListener('input', ()=>{
+    S.h=+$('r-h').value; S.w=+$('r-w').value;
+    $('v-h').innerHTML = S.h+'<small>sm</small>';
+    $('v-w').innerHTML = S.w+'<small>kq</small>';
+    recompute(); renderLive();
+  });
+  $(id).addEventListener('change', save);
 });
 
-$('info-go').addEventListener('click', ()=>{
-  S.infoSeen=true; S.cat=S.pend;
-  S.own[S.cat] = S.own[S.cat] || {fit:'ok', cm:{}};
-  go('s3');
-});
-$('info-skip').addEventListener('click', ()=>{ S.infoSeen=true; S.cat=S.pend; go('s3'); });
+$('go-result').addEventListener('click', ()=>{ recompute(); go('s2'); });
 
-/* kateqoriya ekranı */
+/* ── 2 · nəticə ekranı ── */
+$('go-anchor').addEventListener('click', ()=>go('s3'));
+$('skip-anchor').addEventListener('click', ()=>go('s4'));
+$('go-cam-gate').addEventListener('click', ()=>{
+  const g=$('cam-gate'); g.hidden=!g.hidden;
+  if(!g.hidden) g.scrollIntoView({behavior:'smooth', block:'nearest'});
+});
+const syncCam = () => $('cam-start').disabled = !($('c-age').checked && $('c-ok').checked);
+$('c-age').addEventListener('change', syncCam);
+$('c-ok').addEventListener('change', syncCam);
+$('cam-start').addEventListener('click', ()=>{ hideErr('e-cam'); startCam(); });
+
+/* ── 3 · lövbər sualı ── */
 $('s3').addEventListener('click', e=>{
   const t = sel => e.target.closest('['+sel+']');
   let el;
+  if(el=t('data-org')){  S.anchor.origin = S.anchor.origin===el.dataset.org ? null : el.dataset.org; }
+  else if(el=t('data-asz')){  S.anchor.size = S.anchor.size===el.dataset.asz ? null : el.dataset.asz; }
+  else if(el=t('data-afit')){ S.anchor.fit = el.dataset.afit; }
+  else return;
+  recompute(); renderAnchor(); save();
+});
+$('a-done').addEventListener('click', ()=>go('s4'));
+$('a-skip').addEventListener('click', ()=>{
+  S.anchor={origin:null,size:null,fit:'ok'}; recompute(); go('s4');
+});
+
+/* ── 4 · ölçülərim ── */
+function openCat(k){
+  S.cat=k; S.sel=null; S.editing=null;
+  if(!S.infoSeen){ S.pend=k; go('sInfo'); return; }
+  go('s5');
+}
+$('s4').addEventListener('click', e=>{
+  const el=e.target.closest('[data-cat]'); if(el) openCat(el.dataset.cat);
+});
+$('back3').addEventListener('click', ()=>go('s2'));
+$('restart').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(KEY); }catch(_){}
+  S.own={}; S.manual={}; S.img={}; S.imgW={}; S.sel=null; S.editing=null;
+  S.anchor={origin:null,size:null,fit:'ok'}; S.src='prior'; S.cat=null; S.infoSeen=false;
+  recompute(); syncSex(); syncSliders(); renderLive(); go('s1');
+});
+
+/* ── izah ekranı ── */
+$('info-go').addEventListener('click', ()=>{
+  S.infoSeen=true; S.cat=S.pend;
+  S.own[S.cat] = S.own[S.cat] || {fit:'ok', cm:{}};
+  save(); go('s5');
+});
+$('info-skip').addEventListener('click', ()=>{ S.infoSeen=true; S.cat=S.pend; save(); go('s5'); });
+
+/* ── 5 · kateqoriya detalı ── */
+$('s5').addEventListener('click', e=>{
+  const t = sel => e.target.closest('['+sel+']');
+  let el;
   if(t('data-addown')){ S.own[S.cat] = {fit:'ok', cm:{}}; renderOwn(); return; }
-  if(t('data-delown')){ delete S.own[S.cat]; recompute(); renderCat(); return; }
+  if(t('data-delown')){ delete S.own[S.cat]; recompute(); renderCat(); save(); return; }
   if(t('data-cmtoggle')){ const o=S.own[S.cat]; o.cmOpen=!o.cmOpen; renderOwn(); return; }
-  if(el=t('data-fit')){ S.own[S.cat].fit=el.dataset.fit; recompute(); renderCat(); return; }
+  if(el=t('data-fit')){ S.own[S.cat].fit=el.dataset.fit; recompute(); renderCat(); save(); return; }
   if(el=t('data-save')){
     const k=el.dataset.save, v=+$('ed-'+k).value;
     if(!(v>5 && v<250)) return;
-    S.manual[k]=r1(v); S.editing=null; recompute(); renderCat(); return; }
+    S.manual[k]=r1(v); S.editing=null; recompute(); renderCat(); save(); return; }
   if(t('data-cancel')){ S.editing=null; renderCat(); return; }
   if(el=t('data-edit')){ S.editing=el.dataset.edit; S.sel=null; renderCat();
     setTimeout(()=>$('ed-'+el.dataset.edit)?.focus(),30); return; }
   if(el=t('data-m')){ const k=el.dataset.m; S.sel = S.sel===k?null:k; S.editing=null; renderCat(); }
 });
-$('s3').addEventListener('change', e=>{
+$('s5').addEventListener('change', e=>{
   const el=e.target.closest('[data-own]'); if(!el) return;
   const f=el.dataset.own, o=S.own[S.cat];
   o[f] = el.value==='' ? null : (['eu','len','band'].includes(f) ? +el.value : el.value);
   if(f==='sys') o.size='';
-  recompute(); renderCat();
+  recompute(); renderCat(); save();
 });
-$('s3').addEventListener('input', e=>{
+$('s5').addEventListener('input', e=>{
   const ci=e.target.closest('[data-cm]'), oi=e.target.closest('[data-own]');
   const o=S.own[S.cat]; if(!o) return;
   if(ci){ o.cm=o.cm||{}; o.cm[ci.dataset.cm] = ci.value==='' ? null : +ci.value; }
-  else if(oi && oi.tagName==='INPUT'){
-    o[oi.dataset.own] = oi.value==='' ? null : +oi.value;
-  } else return;
+  else if(oi && oi.tagName==='INPUT'){ o[oi.dataset.own] = oi.value==='' ? null : +oi.value; }
+  else return;
   recompute();
   const est=ownEst(S.cat), out=$('c-own').querySelector('.gout');
   if(out){ out.className = est.w>0?'gout':'gout dim';
@@ -1431,13 +1692,9 @@ $('s3').addEventListener('input', e=>{
       ? '→ ' + Object.entries(est.vals).map(([k,v])=>`${MEAS[k].ad} <b>${v} sm</b>`).join(' · ')
       : 'Ölçünü seç — nəticə burada görünəcək.'; }
 });
-$('c-save').addEventListener('click', ()=>go('s2'));
-
-$('restart').addEventListener('click', ()=>{
-  S.own={}; S.manual={}; S.img={}; S.imgW={}; S.sel=null; S.editing=null;
-  S.src='prior'; S.cat=null; S.infoSeen=false;
-  recompute(); go('s1');
-});
+$('s5').addEventListener('change', save);
+$('c-save').addEventListener('click', ()=>go('s4'));
+$('back2').addEventListener('click', ()=>go('s4'));
 
 /* ═══════════ kamera ilə ölçmə ═══════════
    Bu blok yalnız brauzer kameranı verəndə işləyir. Verməsə, proqram
@@ -1486,7 +1743,7 @@ async function startCam(){
   }catch(err){
     stopCam();
     showErr('e-cam', 'Kamera açılmadı — bu görünüşdə kameraya icazə verilmir. '
-      + 'Ölçülər boy və çəkiyə görə hesablandı; aşağıda hər birini düzəldə bilərsən.');
+      + 'Ölçülər boy və çəkiyə görə hesablandı; «Dəqiqləşdir» ilə daha da yaxşılaşdıra bilərsən.');
     S.img={}; S.imgW={}; S.src='prior'; S.sel=null; recompute(); go('s2');
   }
 }
@@ -1606,7 +1863,7 @@ async function capture(){
   }catch(_){}
   cv.width=cv.height=1;                 // şəkil burada silinir
   measureFromImage(lm ? {lm,mask} : null);
-  S.sel=null; go('s2');
+  S.sel=null; save(); go('s2');
 }
 
 /* siluetdə verilmiş hündürlükdə üfüqi kəsiyin eni */
@@ -1684,8 +1941,22 @@ $('camflip').addEventListener('click', ()=>{
 });
 
 
-/* başlanğıc */
+/* ═════ başlanğıc ═════ */
+const resumed = load();
 recompute();
+syncSex(); syncSliders(); renderLive();
+
+/* məhsul rejimi: #mayka kimi lövbər birbaşa həmin kateqoriyanı açır */
+const hash = (location.hash||'').replace('#','').trim();
+if(hash && CATS[hash]){
+  S.cat = hash;
+  go(resumed ? 's5' : 's1');
+  if(!resumed) S.pend = hash;
+} else if(resumed && (S.anchor.origin || Object.keys(S.own).length)){
+  go('s4');                    // ölçüsü olan qayıdan istifadəçi birbaşa nəticəyə
+} else {
+  go('s1');
+}
 </script>
 <script>
 let deferredPrompt=null;
