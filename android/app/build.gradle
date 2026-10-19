@@ -1,0 +1,29 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'com.cinarmall.digitalolcu'
+  compileSdk 34
+  defaultConfig {
+    applicationId 'com.cinarmall.digitalolcu'
+    minSdk 24
+    targetSdk 34
+    versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+    versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+  }
+  signingConfigs {
+    shared {
+      storeFile file('digital-olcu.keystore')
+      storePassword 'digitalolcu'
+      keyAlias 'digitalolcu'
+      keyPassword 'digitalolcu'
+    }
+  }
+  buildTypes {
+    release { minifyEnabled false; signingConfig signingConfigs.shared }
+    debug { signingConfig signingConfigs.shared }
+  }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+  implementation 'androidx.webkit:webkit:1.11.0'
+  implementation 'androidx.core:core:1.13.1'
+}

@@ -214,6 +214,12 @@ details[open] summary{margin-bottom:8px}
         <div class="tags"><span>şəkil → telefonda</span><span>kart nömrəsi → örtülü</span><span>bizə → yalnız sm</span></div>
       </div>
     </div>
+    <div class="box stack" id="installBox">
+      <span class="eyebrow">Telefona yükləyin</span>
+      <a class="btn primary" href="https://github.com/xayalkerimov3406066-spec/olcu/releases/latest/download/digital-olcu.apk" target="_blank" rel="noopener">Android tətbiqini yüklə (APK)</a>
+      <button class="btn" id="pwaBtn" hidden>Ana ekrana quraşdır</button>
+      <p class="note" style="margin:0">Android: faylı açın, "Bu mənbədən quraşdırmaya icazə ver" seçin və "Quraşdır" basın. iPhone: bu səhifəni Safari-də açın, Paylaş ⬆ → "Ana ekrana əlavə et".</p>
+    </div>
     <div class="box">
       <span class="eyebrow">İşləmə qaydası</span>
       <ol class="how" style="margin-top:12px">
@@ -809,6 +815,12 @@ function setMode(m){
   if(step===5) renderResult();
 }
 $('mSeller').onclick=()=>setMode('seller'); $('mBuyer').onclick=()=>setMode('buyer');
+
+/* ---------- Install ---------- */
+if(new URLSearchParams(location.search).get('app')==='1') $('installBox').hidden=true;
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredInstall=e; $('pwaBtn').hidden=false; });
+$('pwaBtn').onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch(_){} deferredInstall=null; $('pwaBtn').hidden=true; };
 
 /* ---------- Wizard ---------- */
 function go(n){
