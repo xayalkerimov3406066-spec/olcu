@@ -1491,6 +1491,7 @@ const GarmentAuto = (function(){
 })();
 
 /* ---------- Automatic measuring points ---------- */
+let lastAuto=null, blurCache={img:null,v:null};
 let pinConf={}, autoImg=null, autoModel=null, autoBusy=false;
 const AUTO_FAIL={fon:'Paltarı fondan ayırmaq alınmadı. Paltarı fərqli rəngli, sadə fonda çəkin və ya nöqtələri əl ilə qoyun.',
   paltar:'Şəkildə paltar tapılmadı. Paltarı fərqli rəngli, sadə fonda çəkin və ya nöqtələri əl ilə qoyun.',
@@ -1500,7 +1501,7 @@ function runAuto(manual){
   autoBusy=true; measureBarUpdate();
   setTimeout(()=>{
     let r=null; try{ r=GarmentAuto.measure(img, REF.id==='ruler'?null:card, model.id, cal.pxPerCm); }catch(_){ r={ok:false,reason:'fon'}; }
-    autoImg=img; autoModel=model.id; autoBusy=false;
+    autoImg=img; autoModel=model.id; autoBusy=false; lastAuto={ok:!!(r&&r.ok), cut:!!(r&&r.cut), reason:r&&r.reason||null};
     if(r.ok){
       pinConf={};
       model.pins.forEach(p=>{ if(r.pts[p.key]){ pts[p.key]=r.pts[p.key]; pinConf[p.key]=r.conf[p.key]?'ok':'check'; } else pinConf[p.key]='check'; });
@@ -1582,7 +1583,9 @@ function calibrate(){
 }
 function toMM(cal,p){ return cal.persp3d ? applyH(cal.h,p) : {x:cal.aff.ax[0]*p.x+cal.aff.ax[1]*p.y+cal.aff.ax[2], y:cal.aff.ay[0]*p.x+cal.aff.ay[1]*p.y+cal.aff.ay[2]}; }
 function measure(cal){ const o={}; model.pins.forEach(p=>{ const [a,b]=pts[p.key]; o[p.key]=cal.ok?dist(toMM(cal,a),toMM(cal,b))/10:NaN; }); return o; }
-function errCm(L,cal){ const e=Math.max(1,.8/k); return Math.hypot(L*(2*e)/cal.longPx, Math.SQRT2*e/cal.pxPerCm)+.2; }
+// uncertainty: reference corners (sub-pixel when detected automatically, ~finger precision otherwise) + the two end points
+function errCm(L,cal){ const auto=REF.id!=='ruler'&&targets&&card.every(c=>onTarget(c)); const eRef=auto?0.6:Math.max(1,.8/k), ePt=Math.max(1,.8/k);
+  return Math.hypot(L*(2*eRef)/cal.longPx, Math.SQRT2*ePt/cal.pxPerCm)+.2; }
 
 /* ---------- Stage drawing ---------- */
 const V=p=>({x:p.x*k,y:p.y*k});
@@ -1799,16 +1802,73 @@ $('copyListing').onclick=async()=>{ const t=$('listing').textContent;
   catch(_){ const r=document.createRange(); r.selectNodeContents($('listing')); const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); toast('Mətn seçildi, əl ilə kopyalayın'); } };
 
 /* ---------- Results ---------- */
+// sharpness: variance of the Laplacian on a small grey copy (higher = sharper)
+function blurScore(){
+  if(blurCache.img===img) return blurCache.v;
+  try{ const W=320, sc=W/Math.max(iw,ih), w=Math.round(iw*sc), h=Math.round(ih*sc);
+    const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(img,0,0,w,h);
+    const d=g.getImageData(0,0,w,h).data, L=new Float32Array(w*h); for(let i=0;i<w*h;i++) L[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
+    let n=0,sum=0,sq=0; for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=y*w+x, v=4*L[i]-L[i-1]-L[i+1]-L[i-w]-L[i+w]; sum+=v; sq+=v*v; n++; }
+    const m=sum/n; blurCache={img, v:+(sq/n-m*m).toFixed(1)}; }catch(_){ blurCache={img, v:null}; }
+  return blurCache.v;
+}
+// how far the 4 marked corners are from a perfect rectangle of the reference size (mm, after the fit)
+function rectResidualMm(cal){
+  if(cal.ruler||!cal.aff) return null;
+  const s01=dist(card[0],card[1]), s12=dist(card[1],card[2]), s23=dist(card[2],card[3]), s30=dist(card[3],card[0]);
+  const land=(s01+s23)>=(s12+s30), W=land?REF.L:REF.S, H=land?REF.S:REF.L, dst=[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}];
+  let e=0; card.forEach((p,i)=>{ const q=toMM({...cal,persp3d:false},p); e+=Math.hypot(q.x-dst[i].x,q.y-dst[i].y)**2; });
+  return +Math.sqrt(e/4).toFixed(2);
+}
+const KEYNAME={shoulder:'shoulder_width',chest:'chest_width_half',waist:'waist_width_half',hip:'hip_width_half',hem:'hem_width_half',
+  thigh:'thigh_width_half',inseam:'inseam_length',length:'garment_length',sleeve:'sleeve_length'};
 function payload(){
-  const cal=calibrate(), m=measure(cal), r=v=>+v.toFixed(1), meas={};
-  if(cal.ok) model.pins.forEach(p=>{ if(p.half){ meas[p.key+'_half']=r(m[p.key]); meas[p.key+'_full']=r(m[p.key]*2); meas[p.key+'_full_max_stretch']=r(m[p.key]*2+bonus()); } else meas[p.key]=r(m[p.key]); });
-  const sz=cal.ok?model.size(m):null;
-  const o={ module:'cinarmall_digital_olcu', version:4, mode, category:model.id, created_at:new Date().toISOString(),
-    point_source:Object.fromEntries(model.pins.map(p=>[p.key, pinConf[p.key]==='ok'?'auto':pinConf[p.key]==='check'?'auto_unconfirmed':'manual'])),
-    calibration:{ reference:REF.id==='ruler'?`ruler ${rulCm} cm`:REF.std, method:REF.id==='a4'?'4-point homography':REF.id==='ruler'?'2-point scale':'4-point affine', capture_tilt_deg:captureTilt, card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
-    detected_size:sz?{label:sz.label, extra:sz.extra||null, basis:sz.note}:null, fabric_stretch:stretch, measurements_cm:cal.ok?meas:null };
-  if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null;
-    const el=parseFloat(($('elast').value||'').replace(',','.')); o.elastane_pct=isFinite(el)?el:null; o.label_check=cal.ok?labelCheck(m):null; } else o.note=$('note').value.trim()||null;
+  const cal=calibrate(), m=measure(cal), r1=v=>v==null||!isFinite(v)?null:+(+v).toFixed(1), sz=cal.ok?model.size(m):null;
+  const src=k=>pinConf[k]==='ok'?'auto':pinConf[k]==='check'?'auto_unconfirmed':'manual';
+  const refType = REF.id==='a4'?'ISO_216_A4':REF.id==='ruler'?'ruler':'ISO_IEC_7810_ID1';
+  const refDet = REF.id==='ruler' ? 'manual' : targets && card.every(c=>onTarget(c)) ? 'auto_detected' : targets ? 'auto_then_adjusted'
+    : camGuide && !camGuide.unverified ? 'camera_frame_adjusted' : camGuide ? 'camera_frame_unverified' : 'manual';
+  const resid=cal.ok?rectResidualMm(cal):null, pxmm=cal.ok?cal.pxPerCm/10:null;
+  const scaleUnc = pxmm ? +(((refDet==='auto_detected')?0.6:Math.max(1,.8/k))/pxmm*Math.SQRT2 + (resid||0)).toFixed(2) : null;   // mm over the reference length
+  const elast=parseFloat(($('elast').value||'').replace(',','.'));
+  const meas={};
+  if(cal.ok) model.pins.forEach(p=>{ const v=m[p.key], name=KEYNAME[p.key]||p.key, st=src(p.key);
+    meas[name]={ value_cm:r1(v), method:st==='manual'?'manual':'auto', uncertainty_cm:r1(errCm(v,cal)),
+      confidence: st==='auto'?'high':st==='auto_unconfirmed'?'low':'user_confirmed',
+      validation_status: st==='auto_unconfirmed'?'needs_review':'unverified' };
+    if(p.half){ const base=name.replace('_width_half',''); meas[base+'_circumference_flat_estimate']={ value_cm:r1(v*2), formula:`${name} * 2`, uncertainty_cm:r1(errCm(v,cal)*2), validation_status:'derived_unverified' }; } });
+  const lc = mode==='seller'&&cal.ok ? labelCheck(m) : null;
+  const needsReview = !cal.ok || model.pins.some(p=>src(p.key)==='auto_unconfirmed') || (lastAuto&&lastAuto.cut) || refDet==='camera_frame_unverified';
+  const bs=blurScore();
+  const o={
+    module:'cinarmall_digital_olcu', version:5, mode, category:model.id, created_at:new Date().toISOString(),
+    measurement_status: needsReview?'provisional':'reviewed_by_user', units:'cm',
+    image_quality:{ width_px:iw, height_px:ih, blur_score:bs, blur_status: bs==null?null: bs<40?'blurry': bs<100?'acceptable':'sharp',
+      garment_fully_visible: lastAuto&&lastAuto.ok ? !lastAuto.cut : null, reference_fully_visible: cal.ok && REF.id!=='ruler' ? card.every(p=>p.x>=0&&p.y>=0&&p.x<=iw&&p.y<=ih) : null,
+      quality_status: bs!=null && bs>=40 && cal.ok ? 'ok' : 'check' },
+    calibration:{ reference_type:refType,
+      reference_width_mm: REF.id==='ruler'?null:REF.S, reference_height_mm: REF.id==='ruler'?null:REF.L, reference_length_mm: REF.id==='ruler'?rulCm*10:null,
+      method: REF.id==='a4'?'4_point_homography':REF.id==='ruler'?'2_point_scale':'4_point_affine',
+      reference_corners_px: REF.id==='ruler' ? rul.map(p=>[Math.round(p.x),Math.round(p.y)]) : card.map(p=>[Math.round(p.x),Math.round(p.y)]),
+      reference_corner_detection_status: refDet,
+      reference_long_side_px: Math.round(cal.longPx), scale_px_per_mm: pxmm?+pxmm.toFixed(4):null,
+      capture_tilt_deg: captureTilt==null?null:+captureTilt.toFixed(2), perspective_ratio:+cal.persp.toFixed(3),
+      rectangle_fit_error_mm: resid, scale_uncertainty_mm: scaleUnc,
+      coplanar_check:'not_verified',
+      calibration_status: !cal.ok?'failed': (resid!=null&&resid>1.5) || (captureTilt!=null&&captureTilt>4) ? 'check' : 'ok' },
+    point_source:Object.fromEntries(model.pins.map(p=>[p.key, src(p.key)])),
+    measurements: cal.ok?meas:null,
+    fabric:{ stretch_level:stretch, stretch_source: isFinite(elast)?'label_elastane':'user_selected', elastane_pct:isFinite(elast)?elast:null,
+      maximum_measurements: cal.ok ? Object.fromEntries(model.pins.filter(p=>p.half).map(p=>[(KEYNAME[p.key]||p.key).replace('_width_half','')+'_circumference_cm', r1(m[p.key]*2+bonus())])) : null,
+      calculation_method: bonus()?`flat_circumference + ${bonus()} cm (${stretch})`:'none' },
+    size_classification: sz ? { detected_label:sz.label, extra:sz.extra||null, basis:sz.note, chart:'cinarmall_flat_garment_v1',
+      label_size: mode==='seller'?($('tag').value.trim()||null):null, label_check:lc, status: lc&&lc.status==='ok'?'label_consistent':'provisional' } : null,
+    quality_control:{ calibration_check: !cal.ok?'failed': (resid!=null&&resid>1.5)?'check':'passed',
+      points_check: model.pins.some(p=>src(p.key)==='auto_unconfirmed')?'needs_review':'passed',
+      garment_visibility_check: lastAuto ? (lastAuto.cut?'garment_cut_off':'passed') : 'not_run',
+      label_check: lc ? lc.status : 'not_provided', manual_review_required: needsReview }
+  };
+  if(mode==='seller'){ o.sku=$('sku').value.trim()||null; } else o.note=$('note').value.trim()||null;
   return o;
 }
 function renderResult(){
