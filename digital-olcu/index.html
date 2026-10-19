@@ -696,9 +696,10 @@ async function openLive(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camBlocked(); return false; }
   startLevel();   // must start inside the tap (iPhone asks for motion permission)
   try{
-    stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:2560}, height:{ideal:1920}}});
+    stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:4096}, height:{ideal:3072}}});
   }catch(err){ stopLevel(); camBlocked(err); return false; }
   track=stream.getVideoTracks()[0]; torchOn=false;
+  try{ const c=track.getCapabilities&&track.getCapabilities(); if(c&&c.width&&c.height) await track.applyConstraints({width:{ideal:c.width.max}, height:{ideal:c.height.max}}); }catch(_){}
   const v=$('camVideo'); v.srcObject=stream; $('cam').hidden=false; document.body.style.overflow='hidden';
   v.onloadedmetadata=layoutCamFrames;
   try{ await v.play(); }catch(_){}
@@ -743,17 +744,31 @@ function closeLive(){
   $('cam').hidden=true; document.body.style.overflow='';
 }
 $('camClose').onclick=closeLive;
-$('shutter').onclick=()=>{
+async function grabPhoto(){
+  const v=$('camVideo');
+  if('ImageCapture' in window && track){ try{
+      const ic=new ImageCapture(track); const blob=await ic.takePhoto(torchOn?{fillLightMode:'flash'}:undefined);
+      const bmp=await createImageBitmap(blob); if(bmp.width>=v.videoWidth) return bmp; }catch(_){ } }
+  return v;   // fallback: the current preview frame
+}
+// the preview is usually a centred crop of the photo (16:9 preview of a 4:3 sensor)
+function mapFromPreview(fx,fy,pw,ph){ const v=$('camVideo'), va=v.videoWidth/v.videoHeight, pa=pw/ph;
+  let ox=0, oy=0, vw=pw, vh=ph; if(pa>va){ vw=ph*va; ox=(pw-vw)/2; } else if(pa<va){ vh=pw/va; oy=(ph-vh)/2; }
+  return {x:ox+fx*vw, y:oy+fy*vh}; }
+$('shutter').onclick=async()=>{
   const v=$('camVideo'); if(!v.videoWidth){ toast('Kamera hələ hazır deyil'); return; }
-  const MAX=2400, s=Math.min(1, MAX/Math.max(v.videoWidth,v.videoHeight));
-  const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s);
-  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-  const R=camFrameRects(), r=R.r, P=(fx,fy)=>({x:fx*c.width, y:fy*c.height});
+  $('shutter').disabled=true; const tilt=tiltNow, R=camFrameRects();
+  let src=await grabPhoto(); const sw=src.videoWidth||src.width, sh=src.videoHeight||src.height;
+  const MAX=3000, s=Math.min(1, MAX/Math.max(sw,sh));
+  const c=document.createElement('canvas'); c.width=Math.round(sw*s); c.height=Math.round(sh*s);
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height); $('shutter').disabled=false;
+  const r=R.r, P=(fx,fy)=>mapFromPreview(fx,fy,c.width,c.height);
   camGuide={ref:REF.id, quad:[P(r.x,r.y),P(r.x+r.w,r.y),P(r.x+r.w,r.y+r.h),P(r.x,r.y+r.h)], center:P(r.x+r.w/2,r.y+r.h/2), line:[P(r.x,r.y+r.h/2),P(r.x+r.w,r.y+r.h/2)]};
-  captureTilt=tiltNow; closeLive(); useBitmap(c);
-  // the reference was placed in its frame: start from there
+  captureTilt=tilt; closeLive(); useBitmap(c);
   if(camGuide.ref==='ruler') rul=camGuide.line.map(p=>({...p})); else card=camGuide.quad.map(p=>({...p}));
-  toast(captureTilt!=null&&captureTilt>4?`Şəkil ${captureTilt.toFixed(0)}° maili çəkildi. Mümkünsə düz tutub təkrar çəkin.`:'Şəkil çəkildi'); go(3);
+  const lowRes=Math.min(c.width,c.height)<1000;
+  toast(lowRes?`Kamera aşağı keyfiyyət verdi (${c.width}×${c.height}). Dəqiqlik azalır: "Qalereya" ilə telefonun öz kamerasının şəklini seçin.`
+    :captureTilt!=null&&captureTilt>4?`Şəkil ${captureTilt.toFixed(0)}° maili çəkildi. Mümkünsə düz tutub təkrar çəkin.`:'Şəkil çəkildi'); go(3);
 };
 function camBlocked(){
   toast('Bu pəncərədə canlı kameraya icazə yoxdur. "Kamera" düyməsi ilə telefonun öz kamerasını açın və ⚡ ilə işığı yandırın.');
@@ -1098,7 +1113,7 @@ function runDetect(at){
     detectedFor=img;
     if(!r && at && camGuide){ try{ r=CardDetect.auto(img); }catch(_){ r=null; } }
     if(r){ targets=r.map(p=>({x:p.x,y:p.y})); card=targets.map(p=>({...p})); tapMode=false; toast(REF.id==='a4'?'A4 tapıldı. Künclər yerinə qoyuldu':'Kart tapıldı. Künclər yerinə qoyuldu'); }
-    else if(at && camGuide){ targets=null; tapMode=false; toast('Çərçivədə tam tapılmadı: künclər çərçivəyə qoyuldu, onları yoxlayın.'); }
+    else if(at && camGuide){ targets=null; tapMode=false; camGuide.unverified=true; toast('Etalon avtomatik tapılmadı. Çərçivə yalnız təxminidir: künclərini şəkildəki kartın (A4-ün) künclərinə dəqiq çəkin.'); }
     else if(at){ toast('Bu nöqtədə kart tapılmadı. Kartın açıq, yazısız hissəsinə toxunun və ya küncləri əl ilə qoyun.'); }
     else { targets=null; tapMode=true; toast('Kart avtomatik tapılmadı. Şəkildə kartın üstünə toxunun.'); }
     cardBarUpdate(); draw();
@@ -1655,6 +1670,7 @@ function updateStatus(cal){
     msg=!cal.ok?'Xətkeşin iki nöqtəsini və aralarındakı məsafəni daxil edin.':cal.longPx<300?'Nöqtələr bir-birinə yaxındır. Daha uzaq bölgülər seçin (məs. 0 və 50 sm).':`Xətkeş etalonu: 1 sm = ${cal.pxPerCm.toFixed(1)} px. Telefon düz tutulubsa, xəta ±0.5–1%.`;
     $('status').className='status'+(lv==='ok'?'':' '+lv); $('statusTxt').textContent=msg; return; }
   if(!cal.ok){ lv='bad'; msg='Kartın küncləri səhv sırada və ya üst-üstədir. 4 küncü kartın künclərinə saat əqrəbi istiqamətində qoyun.'; }
+  else if(camGuide && camGuide.unverified && !targets && step===3){ lv='warn'; msg='Etalon avtomatik tapılmadı. Künclər şəkildəki etalonun künclərinə dəqiq qoyulmasa, bütün ölçülər səhv çıxar.'; }
   else if(cal.longPx<110){ lv='bad'; msg=`Kart şəkildə çox kiçikdir (${Math.round(cal.longPx)} px). Daha yaxından çəkin.`; }
   else if(captureTilt!=null && captureTilt>4 && REF.id==='card'){ lv='warn'; msg=`Şəkil ${captureTilt.toFixed(0)}° maili çəkilib: ölçülər ~${Math.round(captureTilt*1.2)}% fərqli ola bilər. Telefonu düz tutub yenidən çəkin və ya A4 vərəqdən istifadə edin.`; }
   else if(cal.persp>1.25){ lv='warn'; msg='Telefon xeyli maili tutulub. Dəqiqlik üçün masaya paralel çəkin.'; }
@@ -1700,6 +1716,7 @@ cv.addEventListener('pointermove',e=>{
   draw();
 });
 const endDrag=()=>{ if(!drag) return;
+  if(step===3 && drag.idx!=null && camGuide) camGuide.unverified=false;
   if(step===3 && REF.id!=='ruler' && targets && drag.idx!=null){ const n=onTarget(card[drag.idx]); if(n) card[drag.idx]={...n.t}; }
   drag=null; loupe.hidden=true; draw(); };
 cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
