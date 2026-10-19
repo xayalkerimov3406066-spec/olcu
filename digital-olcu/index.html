@@ -242,9 +242,9 @@ details[open] summary{margin-bottom:8px}
         <circle cx="32" cy="53" r="2" fill="#4fc28a"/>
       </svg>
       <div>
-        <h2>Şəkliniz cibinizdə qalır.</h2>
-        <p>Bütün hesablama bu telefonun içində aparılır. Şəkil heç bir serverə getmir, Cinarmall onu görmür. Bizə yalnız santimetrlər çatır. Kart isə sadəcə xətkeşdir: nömrəsi ekranda örtülür və heç yerdə saxlanılmır.</p>
-        <div class="tags"><span>şəkil → telefonda</span><span>kart nömrəsi → örtülü</span><span>bizə → yalnız sm</span></div>
+        <h2 id="privH">Şəkliniz cibinizdə qalır.</h2>
+        <p id="privP">Bütün hesablama bu telefonun içində aparılır. Şəkil heç bir serverə getmir, Cinarmall onu görmür. Bizə yalnız santimetrlər çatır. Kart isə sadəcə xətkeşdir: nömrəsi ekranda örtülür və heç yerdə saxlanılmır.</p>
+        <div class="tags" id="privTags"><span>şəkil → telefonda</span><span>kart nömrəsi → örtülü</span><span>bizə → yalnız sm</span></div>
       </div>
     </div>
     <div class="box stack" id="installBox">
@@ -355,6 +355,8 @@ details[open] summary{margin-bottom:8px}
       <div class="labelcheck" id="labelCheck" hidden></div>
       <div class="field" id="buyerFields" hidden><label class="lbl" for="note" style="margin:0">Qeyd</label><input id="note" placeholder="Ən yaxşı oturan şalvarım"></div>
       <button class="btn primary" id="saveBtn">Ölçüləri yadda saxla</button>
+      <button class="btn" id="uploadBtn" hidden>Bazaya göndər</button>
+      <p class="note" id="uploadNote" hidden style="margin:0"></p>
     </div>
     <div class="box stack" id="listingBox">
       <div class="sizehead"><h2>Məhsul kartı üçün mətn</h2><button class="btn" id="copyListing" type="button">Kopyala</button></div>
@@ -1849,7 +1851,8 @@ function payload(){
     calibration:{ reference_type:refType,
       reference_width_mm: REF.id==='ruler'?null:REF.S, reference_height_mm: REF.id==='ruler'?null:REF.L, reference_length_mm: REF.id==='ruler'?rulCm*10:null,
       method: REF.id==='a4'?'4_point_homography':REF.id==='ruler'?'2_point_scale':'4_point_affine',
-      reference_corners_px: REF.id==='ruler' ? rul.map(p=>[Math.round(p.x),Math.round(p.y)]) : card.map(p=>[Math.round(p.x),Math.round(p.y)]),
+      // sub-piksel saxlanılır: kart ~100 px enində olduğu üçün tam ədədə yuvarlaqlaşdırma miqyası ~1% pozur
+      reference_corners_px: (REF.id==='ruler' ? rul : card).map(p=>[+p.x.toFixed(2),+p.y.toFixed(2)]),
       reference_corner_detection_status: refDet,
       reference_long_side_px: Math.round(cal.longPx), scale_px_per_mm: pxmm?+pxmm.toFixed(4):null,
       capture_tilt_deg: captureTilt==null?null:+captureTilt.toFixed(2), perspective_ratio:+cal.persp.toFixed(3),
@@ -1857,6 +1860,9 @@ function payload(){
       coplanar_check:'not_verified',
       calibration_status: !cal.ok?'failed': (resid!=null&&resid>1.5) || (captureTilt!=null&&captureTilt>4) ? 'check' : 'ok' },
     point_source:Object.fromEntries(model.pins.map(p=>[p.key, src(p.key)])),
+    points_px:Object.fromEntries(model.pins.filter(p=>pts[p.key]).map(p=>[p.key, pts[p.key].map(q=>[+q.x.toFixed(2),+q.y.toFixed(2)])])),
+    card_masked: REF.id==='card',
+    device:{ model: deviceModel(), app_version: APP_VERSION, platform: window.DigitalOlcu ? 'flutter_webview' : 'pwa' },
     measurements: cal.ok?meas:null,
     fabric:{ stretch_level:stretch, stretch_source: isFinite(elast)?'label_elastane':'user_selected', elastane_pct:isFinite(elast)?elast:null,
       maximum_measurements: cal.ok ? Object.fromEntries(model.pins.filter(p=>p.half).map(p=>[(KEYNAME[p.key]||p.key).replace('_width_half','')+'_circumference_cm', r1(m[p.key]*2+bonus())])) : null,
@@ -1869,6 +1875,8 @@ function payload(){
       label_check: lc ? lc.status : 'not_provided', manual_review_required: needsReview }
   };
   if(mode==='seller'){ o.sku=$('sku').value.trim()||null; } else o.note=$('note').value.trim()||null;
+  if(UPLOAD.productId) o.product_id=UPLOAD.productId;
+  if(UPLOAD.brand) o.brand=UPLOAD.brand;
   return o;
 }
 function renderResult(){
@@ -1911,6 +1919,81 @@ $('saveBtn').onclick=()=>{
   toast(saveH(h)?'Ölçülər saxlanıldı':'Bu brauzerdə yaddaş bağlıdır. JSON-u kopyalayın.'); renderHist();
 };
 
+
+/* ---------- Bazaya göndərmə (Cinarmall Flutter tətbiqi və ya birbaşa API) ----------
+   1) Flutter WebView: JavaScriptChannel "DigitalOlcu" varsa → postMessage(JSON) ; Flutter multipart yükləyir, cavabı
+      window.DigitalOlcuUploadResult({ok, id, server_values_cm, message}) ilə qaytarır.
+   2) window.DigitalOlcuConfig = {apiUrl, token, sku, productId, brand, mode} varsa → birbaşa fetch (multipart).
+   3) Heç biri yoxdursa düymə görünmür və şəkil telefondan çıxmır (məxfilik mətni dəyişmir). */
+const APP_VERSION='1.6.0';
+const UPLOAD = Object.assign({ apiUrl:null, token:null, sku:null, productId:null, brand:null, mode:null, allowDemo:false }, window.DigitalOlcuConfig||{});
+{ // Flutter URL ilə ötürür: ?app=1&sku=..&mode=seller&product_id=..&brand=..  (token URL-ə QOYULMUR, Flutter-də qalır)
+  const q=new URLSearchParams(location.search);
+  if(q.get('sku')) UPLOAD.sku=q.get('sku').slice(0,100); if(q.get('brand')) UPLOAD.brand=q.get('brand').slice(0,100);
+  if(/^\d+$/.test(q.get('product_id')||'')) UPLOAD.productId=+q.get('product_id'); if(['seller','buyer'].includes(q.get('mode'))) UPLOAD.mode=q.get('mode'); }
+const uploadEnabled = () => !!(window.DigitalOlcu || UPLOAD.apiUrl);
+function deviceModel(){
+  const ua=navigator.userAgent||''; const m=ua.match(/Android [\d.]+; ([^;)]+?)(?: Build|\))/);
+  if(m) return m[1].trim(); if(/iPhone/.test(ua)) return 'iPhone'; if(/iPad/.test(ua)) return 'iPad'; return (navigator.platform||'unknown').slice(0,40);
+}
+// Kartın nömrəsi: kartın daxili hissəsi telefonda bulanıqlaşdırılıb rənglə örtülür; künclər (≈12%) açıq qalır ki,
+// moderator etalonu yoxlaya və AI kart küncünü öyrənə bilsin. A4/xətkeşdə örtmək lazım deyil.
+function maskedImageBlob(){
+  return new Promise((res,rej)=>{
+    const c=document.createElement('canvas'); c.width=iw; c.height=ih; const g=c.getContext('2d'); g.drawImage(img,0,0,iw,ih);
+    if(REF.id==='card' && card.length===4){
+      const cx=card.reduce((t,p)=>t+p.x,0)/4, cy=card.reduce((t,p)=>t+p.y,0)/4, inset=.12;
+      const poly=card.map(p=>({x:p.x+(cx-p.x)*inset, y:p.y+(cy-p.y)*inset}));
+      // orta rəng
+      let r=0,gg=0,b=0,n=0; try{ const xs=card.map(p=>p.x), ys=card.map(p=>p.y), x0=Math.max(0,Math.min(...xs)|0), y0=Math.max(0,Math.min(...ys)|0);
+        const w=Math.max(1,Math.min(iw,Math.max(...xs))-x0|0), h=Math.max(1,Math.min(ih,Math.max(...ys))-y0|0), d=g.getImageData(x0,y0,w,h).data;
+        for(let i=0;i<d.length;i+=16){ r+=d[i]; gg+=d[i+1]; b+=d[i+2]; n++; } }catch(_){ }
+      g.save(); g.beginPath(); poly.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)); g.closePath(); g.clip();
+      if('filter' in g){ g.filter='blur(18px)'; g.drawImage(c,0,0); g.filter='none'; }
+      g.globalAlpha=.85; g.fillStyle=n?`rgb(${r/n|0},${gg/n|0},${b/n|0})`:'#888'; g.fill(); g.restore();
+    }
+    c.toBlob(bl=>bl?res(bl):rej(new Error('Şəkil hazırlanmadı')),'image/jpeg',.9);
+  });
+}
+const blobToDataUrl=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
+function setUploadNote(t,cls){ const n=$('uploadNote'); n.hidden=!t; n.textContent=t||''; n.style.color=cls==='err'?'var(--bad,#c13a3a)':cls==='ok'?'var(--ok,#1a7f4b)':''; }
+let uploading=false, lastUploadSig=null;
+async function uploadMeasurement(){
+  if(uploading) return; const cal=calibrate(); if(!cal.ok){ toast('Əvvəl etalonu düzgün yerləşdirin'); return; }
+  if(isDemo && !UPLOAD.allowDemo){ toast('Nümunə şəkli bazaya göndərilmir'); return; }
+  const p=payload(), sig=JSON.stringify([p.points_px,p.calibration.reference_corners_px,p.sku]);
+  if(sig===lastUploadSig){ toast('Bu ölçü artıq göndərilib'); return; }
+  uploading=true; $('uploadBtn').disabled=true; setUploadNote('Göndərilir…');
+  try{
+    const blob=await maskedImageBlob();
+    if(window.DigitalOlcu && window.DigitalOlcu.postMessage){
+      window.DigitalOlcu.postMessage(JSON.stringify({ type:'upload', payload:p, image_base64:await blobToDataUrl(blob), device_model:p.device.model, app_version:APP_VERSION }));
+      lastUploadSig=sig; return;   // nəticə DigitalOlcuUploadResult ilə gəlir
+    }
+    const fd=new FormData(); fd.append('payload',JSON.stringify(p)); fd.append('image',blob,'olcu.jpg');
+    fd.append('device_model',p.device.model); fd.append('app_version',APP_VERSION);
+    const r=await fetch(UPLOAD.apiUrl.replace(/\/$/,'')+'/api/v1/digital-olcu/measurements',{ method:'POST', body:fd,
+      headers:Object.assign({Accept:'application/json'}, UPLOAD.token?{Authorization:'Bearer '+UPLOAD.token}:{}) });
+    const d=await r.json().catch(()=>({}));
+    lastUploadSig = r.ok ? sig : null;
+    window.DigitalOlcuUploadResult(Object.assign({ok:r.ok}, d));
+  }catch(e){ window.DigitalOlcuUploadResult({ok:false, message:e.message}); }
+}
+window.DigitalOlcuUploadResult = function(d){
+  uploading=false; $('uploadBtn').disabled=false;
+  if(!d || !d.ok){ lastUploadSig=null; setUploadNote('Göndərilmədi: '+((d&&d.message)||'bağlantı xətası')+'. Yenidən cəhd edin.','err'); toast('Göndərilmədi'); return; }
+  const mm=(d.mismatch_keys||[]).length;
+  setUploadNote(`Bazaya göndərildi (#${d.id}).`+(mm?` Serverin hesabı ${mm} ölçüdə fərqlidir, moderator yoxlayacaq.`:''),'ok'); toast('Bazaya göndərildi');
+};
+if(uploadEnabled()){
+  $('uploadBtn').hidden=false; $('uploadBtn').onclick=uploadMeasurement;
+  // məxfilik mətni dürüst olsun: şəkil yalnız düymə basılanda gedir
+  $('privH').textContent='Şəkil yalnız siz göndərəndə gedir.';
+  $('privP').textContent='Ölçmə telefonun içində aparılır. "Bazaya göndər" düyməsini basanda şəkil və ölçülər Cinarmall-a göndərilir ki, ölçülərin dəqiqliyi yoxlanılsın. Kartın nömrəsi göndərilməzdən əvvəl telefonun özündə örtülür.';
+  $('privTags').innerHTML='<span>hesablama → telefonda</span><span>kart nömrəsi → örtülü</span><span>göndərmə → yalnız sizin razılığınızla</span>';
+  if(UPLOAD.sku) $('sku').value=UPLOAD.sku;
+}
+
 /* ---------- Mode ---------- */
 function setMode(m){
   mode=m; $('mSeller').setAttribute('aria-pressed',m==='seller'); $('mBuyer').setAttribute('aria-pressed',m==='buyer');
@@ -1919,6 +2002,7 @@ function setMode(m){
   if(step===5) renderResult();
 }
 $('mSeller').onclick=()=>setMode('seller'); $('mBuyer').onclick=()=>setMode('buyer');
+if(UPLOAD.mode==='buyer'||UPLOAD.mode==='seller') setMode(UPLOAD.mode);
 
 /* ---------- Install ---------- */
 if(new URLSearchParams(location.search).get('app')==='1') $('installBox').hidden=true;
