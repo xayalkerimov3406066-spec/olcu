@@ -107,6 +107,8 @@ h2{font-weight:600;font-size:18px;line-height:1.2}
 .stagecard{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .stage{background:var(--stage);position:relative;display:flex;justify-content:center;align-items:center;min-height:240px;user-select:none;-webkit-user-select:none}
 #cv{display:block;touch-action:none;cursor:crosshair}
+.stagebar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.stagebar .btn{padding:8px 12px;font-size:13px}
 #loupe{position:absolute;top:10px;left:10px;width:132px;height:132px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,.5);pointer-events:none;background:#000}
 #loupe.right{left:auto;right:10px}
 .hint{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line)}
@@ -276,6 +278,7 @@ details[open] summary{margin-bottom:8px}
   <section class="screen" data-step="3" hidden>
     <div class="measgrid">
       <div class="stagecard">
+        <div class="stagebar" id="cardBar" hidden><span id="cardFound"></span><button class="btn" id="findBtn" type="button">Kartı tap</button></div>
         <div class="stage" id="stage">
           <canvas id="cv"></canvas>
           <canvas id="loupe" width="264" height="264" hidden></canvas>
@@ -619,6 +622,212 @@ function camBlocked(){
 }
 $('liveBtn').onclick=openLive;
 
+/* ---------- Card auto-detection (flood region → quad → edge-line fit) ---------- */
+const CardDetect = (function(){
+  let mk = (w,h)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; };
+  function sample(src, sx, sy, sw, sh, maxSide, up){
+    const s=Math.min(up||1, maxSide/Math.max(sw,sh)), w=Math.max(2,Math.round(sw*s)), h=Math.max(2,Math.round(sh*s));
+    const c=mk(w,h), g=c.getContext('2d', {willReadFrequently:true});
+    g.drawImage(src, sx, sy, sw, sh, 0, 0, w, h);
+    const d=g.getImageData(0,0,w,h).data, n=w*h;
+    const R=new Float32Array(n), G=new Float32Array(n), B=new Float32Array(n), L=new Float32Array(n);
+    for(let i=0,j=0;i<n;i++,j+=4){ R[i]=d[j]; G[i]=d[j+1]; B[i]=d[j+2]; L[i]=.299*d[j]+.587*d[j+1]+.114*d[j+2]; }
+    // 3x3 box blur on luminance before gradients (suppresses sensor noise)
+    const Lb=new Float32Array(n);
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=y*w+x;
+      Lb[i]=(L[i-w-1]+L[i-w]+L[i-w+1]+L[i-1]+L[i]+L[i+1]+L[i+w-1]+L[i+w]+L[i+w+1])/9; }
+    const M=new Float32Array(n);
+    for(let y=2;y<h-2;y++) for(let x=2;x<w-2;x++){ const i=y*w+x;
+      M[i]=Math.abs(Lb[i+1]-Lb[i-1])+Math.abs(Lb[i+w]-Lb[i-w]); }
+    for(let x=0;x<w;x++){ M[x]=M[w+x]=M[(h-1)*w+x]=M[(h-2)*w+x]=999; }
+    for(let y=0;y<h;y++){ M[y*w]=M[y*w+1]=M[y*w+w-1]=M[y*w+w-2]=999; }
+    return {w,h,s,sx,sy,R,G,B,M};
+  }
+  function flood(W, seed, p, visited){
+    const {w,h,R,G,B,M}=W, n=w*h, maxArea=p.maxArea*n;
+    const mask=new Uint8Array(n), q=new Int32Array(n);
+    let head=0, tail=0, area=0;
+    const s0=seed, sr=R[s0], sg=G[s0], sb=B[s0];
+    if(M[s0]>=p.G) return null;
+    mask[s0]=1; q[tail++]=s0;
+    while(head<tail){
+      const i=q[head++]; area++;
+      if(area>maxArea){ if(visited) for(let k=0;k<tail;k++) visited[q[k]]=1; return null; }
+      const x=i%w;
+      const nb=[x>0?i-1:-1, x<w-1?i+1:-1, i-w, i+w];
+      for(const j of nb){
+        if(j<0||j>=n||mask[j]) continue;
+        if(M[j]>=p.G) continue;
+        const dn=Math.abs(R[j]-R[i])+Math.abs(G[j]-G[i])+Math.abs(B[j]-B[i]);
+        if(dn>p.Tn) continue;
+        const ds=Math.abs(R[j]-sr)+Math.abs(G[j]-sg)+Math.abs(B[j]-sb);
+        if(ds>p.Ts) continue;
+        mask[j]=1; q[tail++]=j;
+      }
+    }
+    if(visited) for(let k=0;k<tail;k++) visited[q[k]]=1;
+    return {mask, area};
+  }
+  function cross(o,a,b){ return (a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x); }
+  function hull(P){
+    const pts=P.slice().sort((a,b)=>a.x-b.x||a.y-b.y), lo=[], up=[];
+    for(const p of pts){ while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); }
+    for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); }
+    up.pop(); lo.pop(); return lo.concat(up);
+  }
+  const triA=(a,b,c)=>Math.abs(cross(a,b,c))/2;
+  function polyArea(q){ let s=0; for(let i=0;i<q.length;i++){ const a=q[i], b=q[(i+1)%q.length]; s+=a.x*b.y-b.x*a.y; } return Math.abs(s)/2; }
+  function toQuad(H){
+    // largest-area quadrilateral with vertices on the hull (robust to rounded corners)
+    let v=H; if(v.length<4) return null;
+    if(v.length>120){ const k=Math.ceil(v.length/120); v=v.filter((_,i)=>i%k===0); }
+    const n=v.length; let best=null, ba=-1;
+    for(let i=0;i<n;i++) for(let k=i+2;k<n;k++){
+      let a1=-1,j1=-1; for(let j=i+1;j<k;j++){ const a=triA(v[i],v[j],v[k]); if(a>a1){a1=a;j1=j;} }
+      let a2=-1,l1=-1; for(let l=k+1;l<n+i;l++){ const a=triA(v[k],v[l%n],v[i]); if(a>a2){a2=a;l1=l%n;} }
+      if(j1<0||l1<0) continue;
+      if(a1+a2>ba){ ba=a1+a2; best=[v[i],v[j1],v[k],v[l1]]; }
+    }
+    return best;
+  }
+  function boundary(mask,w,h){
+    const P=[]; let spanArea=0;
+    for(let y=0;y<h;y++){ let a=-1,b=-1; for(let x=0;x<w;x++) if(mask[y*w+x]){ if(a<0)a=x; b=x; }
+      if(a>=0){ P.push({x:a,y},{x:b+1,y}); spanArea+=b-a+1; } }
+    for(let x=0;x<w;x++){ let a=-1,b=-1; for(let y=0;y<h;y++) if(mask[y*w+x]){ if(a<0)a=y; b=y; }
+      if(a>=0) P.push({x,y:a},{x,y:b+1}); }
+    // pixel-edge coordinates: shift by +0.5 on the axis perpendicular to the scan
+    return {P, spanArea};
+  }
+  function fitLine(pts){
+    let mx=0,my=0; for(const p of pts){mx+=p.x;my+=p.y;} mx/=pts.length; my/=pts.length;
+    let sxx=0,syy=0,sxy=0; for(const p of pts){ const dx=p.x-mx, dy=p.y-my; sxx+=dx*dx; syy+=dy*dy; sxy+=dx*dy; }
+    const th=0.5*Math.atan2(2*sxy, sxx-syy);
+    return {x:mx,y:my,dx:Math.cos(th),dy:Math.sin(th)};
+  }
+  function intersect(a,b){
+    const den=a.dx*b.dy-a.dy*b.dx; if(Math.abs(den)<1e-9) return null;
+    const t=((b.x-a.x)*b.dy-(b.y-a.y)*b.dx)/den; return {x:a.x+a.dx*t, y:a.y+a.dy*t};
+  }
+  function analyse(reg, W){
+    const {P, spanArea}=boundary(reg.mask, W.w, W.h);
+    if(P.length<16) return null;
+    let q=toQuad(hull(P)); if(!q) return null;
+    // order clockwise (screen), starting near top-left
+    const cx=q.reduce((s,p)=>s+p.x,0)/4, cy=q.reduce((s,p)=>s+p.y,0)/4;
+    q.sort((a,b)=>Math.atan2(a.y-cy,a.x-cx)-Math.atan2(b.y-cy,b.x-cx));
+    let st=0; q.forEach((p,i)=>{ if(p.x+p.y<q[st].x+q[st].y) st=i; }); q=q.slice(st).concat(q.slice(0,st));
+    const qa=polyArea(q), fill=spanArea/qa;
+    const sd=[0,1,2,3].map(i=>Math.hypot(q[(i+1)%4].x-q[i].x, q[(i+1)%4].y-q[i].y));
+    const aspect=Math.max((sd[0]+sd[2])/(sd[1]+sd[3]), (sd[1]+sd[3])/(sd[0]+sd[2]));
+    const opp=Math.max(sd[0]/sd[2], sd[2]/sd[0], sd[1]/sd[3], sd[3]/sd[1]);
+    // refine: fit straight lines to each side's middle part, intersect neighbours (handles rounded corners)
+    let corners=q, lined=false;
+    let cur=q;
+    for(let pass=0;pass<3;pass++){
+      const cs=[0,1,2,3].map(i=>Math.hypot(cur[(i+1)%4].x-cur[i].x, cur[(i+1)%4].y-cur[i].y));
+      const groups=[[],[],[],[]];
+      for(const p of P){
+        let bi=-1, bd=Infinity, bt=0;
+        for(let i=0;i<4;i++){ const a=cur[i], b=cur[(i+1)%4], L=cs[i];
+          const t=((p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y))/(L*L);
+          const d=Math.abs(cross(a,b,p))/L; if(d<bd){bd=d;bi=i;bt=t;} }
+        const tol=pass===0?Math.max(3, cs[bi]*0.06):Math.max(1.5, cs[bi]*0.015);
+        if(bt>0.15 && bt<0.85 && bd<tol) groups[bi].push(p);
+      }
+      if(!groups.every(g=>g.length>=6)) break;
+      const L=groups.map(fitLine), c=[];
+      for(let i=0;i<4;i++){ const pt=intersect(L[(i+3)%4], L[i]); if(!pt) break; c.push(pt); }
+      if(c.length!==4 || !c.every((p,i)=>Math.hypot(p.x-q[i].x,p.y-q[i].y) < 0.25*Math.min(...sd))) break;
+      cur=c; corners=c; lined=true;
+    }
+    return {corners, lined, fill, aspect, opp, area:qa, valid: fill>0.86 && aspect>1.3 && aspect<1.95 && opp<1.45};
+  }
+  const toFull=(W,p)=>({x:W.sx+p.x/W.s, y:W.sy+p.y/W.s});
+  const PARAMS=[{Tn:12,Ts:60,G:30},{Tn:18,Ts:80,G:42},{Tn:26,Ts:110,G:60},{Tn:36,Ts:140,G:85}];
+  function refine(src, coarse, seedFull){
+    // second pass on a tight, higher-resolution crop around the coarse card
+    const xs=coarse.map(p=>p.x), ys=coarse.map(p=>p.y);
+    const bw=Math.max(...xs)-Math.min(...xs), bh=Math.max(...ys)-Math.min(...ys);
+    const sx=Math.max(0,Math.floor(Math.min(...xs)-bw*.35)), sy=Math.max(0,Math.floor(Math.min(...ys)-bh*.35));
+    const ex=Math.min(src.width,Math.ceil(Math.max(...xs)+bw*.35)), ey=Math.min(src.height,Math.ceil(Math.max(...ys)+bh*.35));
+    const W=sample(src, sx, sy, ex-sx, ey-sy, 900, 3);
+    let best=null;
+    for(const p of PARAMS){
+      const sxp=Math.round((seedFull.x-sx)*W.s), syp=Math.round((seedFull.y-sy)*W.s);
+      if(sxp<1||syp<1||sxp>=W.w-1||syp>=W.h-1) continue;
+      const r=flood(W, syp*W.w+sxp, {...p, maxArea:0.6}); if(!r) continue;
+      const a=analyse(r,W); if(a && a.valid && (!best || a.fill>best.fill)) best=a;
+    }
+    return best ? best.corners.map(p=>toFull(W,p)) : null;
+  }
+  function seedInside(reg, W, quad){
+    // a region pixel close to the quad centre (the centre itself may be a logo or chip)
+    const cx=quad.reduce((s,p)=>s+p.x,0)/4, cy=quad.reduce((s,p)=>s+p.y,0)/4;
+    let best=-1, bd=Infinity;
+    for(let i=0;i<reg.mask.length;i++) if(reg.mask[i]){ const x=i%W.w, y=(i/W.w)|0, d=(x-cx)**2+(y-cy)**2; if(d<bd){bd=d;best=i;} }
+    return toFull(W,{x:best%W.w+.5, y:((best/W.w)|0)+.5});
+  }
+  function scoreOf(a){ return a.fill - Math.abs(a.aspect-1.586)*0.6 - (a.opp-1)*0.3; }
+  function auto(src){
+    const W=sample(src,0,0,src.width,src.height,480), n=W.w*W.h, visited=new Uint8Array(n);
+    let best=null;
+    const step=Math.max(4, Math.round(Math.min(W.w,W.h)/40));
+    for(const p of [PARAMS[1],PARAMS[2]]){
+      visited.fill(0);
+      for(let y=step;y<W.h-step;y+=step) for(let x=step;x<W.w-step;x+=step){
+        const i=y*W.w+x; if(visited[i]) continue;
+        const r=flood(W,i,{...p,maxArea:0.12},visited); if(!r || r.area<0.0012*n) continue;
+        const a=analyse(r,W); if(!a||!a.valid) continue;
+        const sc=scoreOf(a); if(!best||sc>best.sc) best={sc, a, seed:seedInside(r,W,a.corners), W};
+      }
+      if(best) break;
+    }
+    if(!best) return null;
+    const coarse=best.a.corners.map(p=>toFull(best.W,p));
+    return refine(src, coarse, best.seed) || coarse;
+  }
+  function at(src, pt){
+    const W=sample(src,0,0,src.width,src.height,600);
+    const x=Math.round(pt.x*W.s), y=Math.round(pt.y*W.s);
+    let best=null;
+    for(const p of PARAMS){
+      const r=flood(W,y*W.w+x,{...p,maxArea:0.3}); if(!r) continue;
+      const a=analyse(r,W); if(a&&a.valid){ const sc=scoreOf(a); if(!best||sc>best.sc) best={sc,a,seed:seedInside(r,W,a.corners)}; }
+    }
+    if(!best) return null;
+    const coarse=best.a.corners.map(p=>toFull(W,p));
+    return refine(src, coarse, best.seed) || coarse;
+  }
+  return {auto, at, setFactory:f=>{mk=f;}};
+})();
+
+/* ---------- Card targets: where the corners belong ---------- */
+let targets=null, detectedFor=null, tapMode=false;
+const SNAP_CSS=18;
+function nearestTarget(p){ if(!targets) return null; let bi=-1,bd=Infinity; targets.forEach((t,i)=>{ const d=dist(p,t); if(d<bd){bd=d;bi=i;} }); return {i:bi,d:bd,t:targets[bi]}; }
+const onTarget=p=>{ const n=nearestTarget(p); return n && n.d<=SNAP_CSS/k ? n : null; };
+function runDetect(at){
+  $('cardFound').textContent='Kart axtarılır…';
+  setTimeout(()=>{
+    let r=null; try{ r = at ? CardDetect.at(img,at) : CardDetect.auto(img); }catch(_){ r=null; }
+    detectedFor=img;
+    if(r){ targets=r.map(p=>({x:p.x,y:p.y})); card=targets.map(p=>({...p})); tapMode=false; toast('Kart tapıldı. Künclər yerinə qoyuldu'); }
+    else if(at){ toast('Bu nöqtədə kart tapılmadı. Kartın açıq, yazısız hissəsinə toxunun və ya küncləri əl ilə qoyun.'); }
+    else { targets=null; tapMode=true; toast('Kart avtomatik tapılmadı. Şəkildə kartın üstünə toxunun.'); }
+    cardBarUpdate(); draw();
+  },40);
+}
+function cardBarUpdate(){
+  const el=$('cardFound');
+  if(tapMode){ el.innerHTML='<b style="color:var(--warn)">Şəkildə kartın üstünə bir dəfə toxunun</b>'; $('findBtn').textContent='Ləğv et'; return; }
+  if(!targets){ el.textContent='Kart tapılmayıb. Küncləri əl ilə qoyun və ya "Kartı tap" basın.'; $('findBtn').textContent='Kartı tap'; return; }
+  $('findBtn').textContent='Yenidən tap';
+  const ok=card.filter(c=>onTarget(c)).length;
+  el.innerHTML = ok===4 ? '<b style="color:var(--accent)">✓ 4/4 künc yerindədir</b>' : `<b>${ok}/4</b> künc yerindədir. Sarı nöqtəni yaşıl dairəyə çəkin.`;
+}
+$('findBtn').onclick=()=>{ if(!img) return; if(tapMode){ tapMode=false; cardBarUpdate(); return; } runDetect(null); };
+
 /* ---------- Homography: image px -> card plane mm ---------- */
 function solve(A,b){
   const n=b.length;
@@ -688,8 +897,20 @@ function draw(){
   ctx.beginPath(); inner.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
   ctx.fillStyle='rgba(16,24,19,.92)'; ctx.fill();
   ctx.beginPath(); q.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
-  ctx.strokeStyle=cal.ok?'#34d399':'#f87171'; ctx.lineWidth=cardMode?2:1.5; ctx.setLineDash(cardMode?[]:[4,4]); ctx.stroke(); ctx.setLineDash([]);
-  if(cardMode) q.forEach(p=>ring(p,'#34d399',13));
+  const allOn=!targets||card.every(c=>onTarget(c));
+  ctx.strokeStyle=!cal.ok?'#f87171':allOn?'#34d399':'#fbbf24'; ctx.lineWidth=cardMode?2:1.5; ctx.setLineDash(cardMode?[]:[4,4]); ctx.stroke(); ctx.setLineDash([]);
+  if(cardMode){
+    if(targets) targets.forEach(t=>{
+      const v=V(t), hit=card.some(c=>dist(c,t)<=SNAP_CSS/k);
+      ctx.beginPath(); ctx.arc(v.x,v.y,SNAP_CSS,0,Math.PI*2);
+      ctx.fillStyle=hit?'rgba(52,211,153,.30)':'rgba(52,211,153,.14)'; ctx.fill();
+      ctx.setLineDash([4,3]); ctx.lineWidth=1.6; ctx.strokeStyle='#34d399'; ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(v.x-6,v.y); ctx.lineTo(v.x+6,v.y); ctx.moveTo(v.x,v.y-6); ctx.lineTo(v.x,v.y+6);
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=1.5; ctx.stroke();
+    });
+    card.forEach(c=>ring(V(c), (!targets||onTarget(c))?'#34d399':'#fbbf24', 13));
+    cardBarUpdate();
+  }
   model.pins.forEach(p=>{
     const a=V(pts[p.key][0]), b=V(pts[p.key][1]);
     ctx.globalAlpha=cardMode?.3:1;
@@ -740,8 +961,9 @@ function inQuad(p,q){ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=
 cv.addEventListener('pointerdown',e=>{
   if(!img) return;
   const p=toImg(e); let best=null, bd=26/k;
+  if(step===3 && tapMode){ e.preventDefault(); runDetect(p); return; }
   if(step===3){
-    card.forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>card[i], set:v=>card[i]=v};} });
+    card.forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={idx:i, ref:()=>card[i], set:v=>card[i]=v};} });
     if(!best && inQuad(p,card)){ const st=card.map(c=>({...c})); best={ref:()=>p, move:np=>{ card=st.map(c=>({x:c.x+np.x-p.x,y:c.y+np.y-p.y})); }, noLoupe:true}; }
   } else {
     for(const key in pts) pts[key].forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>pts[key][i], set:v=>pts[key][i]=v};} });
@@ -755,7 +977,9 @@ cv.addEventListener('pointermove',e=>{
   if(drag.move) drag.move(p); else drag.set({x:Math.max(0,Math.min(iw,p.x+drag.off.x)), y:Math.max(0,Math.min(ih,p.y+drag.off.y))});
   draw();
 });
-const endDrag=()=>{ if(!drag) return; drag=null; loupe.hidden=true; draw(); };
+const endDrag=()=>{ if(!drag) return;
+  if(step===3 && targets && drag.idx!=null){ const n=onTarget(card[drag.idx]); if(n) card[drag.idx]={...n.t}; }
+  drag=null; loupe.hidden=true; draw(); };
 cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
 
 /* ---------- Results ---------- */
@@ -837,8 +1061,10 @@ function go(n){
   if(n===1) requestAnimationFrame(renderCat);
   if(n===3||n===4){
     $('liveBox').hidden = n===3;
+    $('cardBar').hidden = n!==3;
+    if(n===3 && img && detectedFor!==img){ targets=null; tapMode=false; runDetect(null); }
     $('hint').innerHTML = n===3
-      ? `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">1</span><span><b>Kartın 4 küncünü</b> şəkildəki kartın künclərinə sürüşdürün. Kartın içindən tutub bütövlükdə də daşıya bilərsiniz. Ortası məxfilik üçün örtülür.</span>`
+      ? `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">1</span><span><b>Yaşıl dairələr</b> kartın künclərinin düzgün yeridir: proqram kartı şəkildə özü tapır və nöqtələri ora qoyur. Nöqtə yerindən çıxanda <b>sarı</b> olur, yaşıl dairəyə çatanda yaşıl yanır və yerinə yapışır. Kartın ortası məxfilik üçün örtülür.</span>`
       : `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">2</span><span><b>Rəngli nöqtələri</b> paltarın tikiş kənarlarına qoyun. Hər xəttin adı və ölçüsü üstündə yazılıb.</span>`;
     requestAnimationFrame(layout);
   }
