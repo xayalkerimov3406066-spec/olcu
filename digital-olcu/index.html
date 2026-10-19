@@ -101,6 +101,14 @@ h2{font-weight:600;font-size:18px;line-height:1.2}
 .thumb{border-radius:14px;overflow:hidden;background:var(--stage);display:flex;justify-content:center}
 .thumb img{max-height:220px;display:block}
 .note{font-size:13px;color:var(--muted)}
+.sync{border:1px solid var(--line);background:var(--sunk);color:var(--muted);font:600 11.5px var(--f-body);padding:6px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.sync.ok{color:#1a7f4b;border-color:#1a7f4b55;background:#1a7f4b14}.sync.wait{color:#b26b00;border-color:#b26b0055;background:#b26b0014}.sync.err{color:#c13a3a;border-color:#c13a3a55;background:#c13a3a14}
+dialog#pairDlg{border:none;border-radius:18px;padding:18px;max-width:420px;width:calc(100% - 32px);background:var(--card,#fff);color:var(--fg)}
+dialog#pairDlg::backdrop{background:rgba(0,0,0,.55)}
+#pairVideo{width:100%;border-radius:12px;background:#000;aspect-ratio:1;object-fit:cover}
+.reasons{display:flex;flex-wrap:wrap;gap:6px}.reasons button{border:1px solid var(--line);background:var(--sunk);color:var(--fg);font:500 12.5px var(--f-body);padding:8px 10px;border-radius:9px;cursor:pointer}
+.reasons button[aria-pressed="true"]{border-color:#c13a3a;background:#c13a3a14}
+#fitChips button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
 .tips{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:4px}
 
 /* stage */
@@ -222,6 +230,7 @@ details[open] summary{margin-bottom:8px}
       <div class="mark">D</div>
       <div><b>Digital <span>ölçü</span></b><small>Cinarmall · kartla geyim ölçmə</small></div>
     </div>
+    <button class="sync" id="syncPill" type="button" title="Mərkəzi baza ilə sinxronizasiya">Baza: qoşulmayıb</button>
     <div class="seg" role="group" aria-label="Rejim">
       <button id="mSeller" aria-pressed="true">Satıcı</button>
       <button id="mBuyer" aria-pressed="false">Alıcı</button>
@@ -354,9 +363,31 @@ details[open] summary{margin-bottom:8px}
       </div>
       <div class="labelcheck" id="labelCheck" hidden></div>
       <div class="field" id="buyerFields" hidden><label class="lbl" for="note" style="margin:0">Qeyd</label><input id="note" placeholder="Ən yaxşı oturan şalvarım"></div>
-      <button class="btn primary" id="saveBtn">Ölçüləri yadda saxla</button>
-      <button class="btn" id="uploadBtn" hidden>Bazaya göndər</button>
-      <p class="note" id="uploadNote" hidden style="margin:0"></p>
+      <div id="fitBox" hidden>
+        <span class="lbl">Bu paltar sizə necə oturur?</span>
+        <div class="chips" id="fitChips">
+          <button data-f="too_small" aria-pressed="false">Dar / kiçik</button>
+          <button data-f="fits" aria-pressed="false">Yaxşı oturur</button>
+          <button data-f="too_large" aria-pressed="false">Geniş / böyük</button>
+        </div>
+      </div>
+      <button class="btn primary" id="saveBtn">Təsdiqlə və yadda saxla</button>
+      <details id="rejectBox">
+        <summary style="cursor:pointer;font-size:14px;color:#c13a3a;font-weight:600">Ölçünü rədd et</summary>
+        <div class="stack" style="margin-top:10px">
+          <div class="reasons" id="rejReasons">
+            <button data-r="Etalon (kart/A4) düz yerləşməyib">Etalon düz deyil</button>
+            <button data-r="Şəkil bulanıq və ya qaranlıqdır">Şəkil keyfiyyətsiz</button>
+            <button data-r="Paltar tam görünmür">Paltar tam görünmür</button>
+            <button data-r="Paltar düz sərilməyib (qırış)">Paltar qırışıqdır</button>
+            <button data-r="Ölçü nöqtələri səhvdir">Nöqtələr səhvdir</button>
+            <button data-r="Etiket ölçüsü ilə uyğun deyil">Etiketlə uyğun deyil</button>
+          </div>
+          <input id="rejText" placeholder="Səbəb (seçin və ya yazın)">
+          <button class="btn" id="rejBtn" type="button" style="color:#c13a3a">Rədd et</button>
+        </div>
+      </details>
+      <p class="note" id="syncNote" style="margin:0"></p>
     </div>
     <div class="box stack" id="listingBox">
       <div class="sizehead"><h2>Məhsul kartı üçün mətn</h2><button class="btn" id="copyListing" type="button">Kopyala</button></div>
@@ -403,6 +434,21 @@ details[open] summary{margin-bottom:8px}
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<dialog id="pairDlg" aria-labelledby="pairTitle">
+  <div class="stack">
+    <h2 id="pairTitle" style="margin:0">Mərkəzi bazaya qoşulma</h2>
+    <p class="note" id="pairState" style="margin:0"></p>
+    <video id="pairVideo" playsinline muted hidden></video>
+    <button class="btn primary" id="pairScan" type="button">QR kodu oxut</button>
+    <input id="pairInput" placeholder="və ya qoşulma linkini yapışdırın">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="pairOk" type="button">Qoş</button>
+      <button class="btn" id="pairSync" type="button">İndi göndər</button>
+      <button class="btn" id="pairOff" type="button">Ayır</button>
+      <button class="btn" id="pairClose" type="button">Bağla</button>
+    </div>
+  </div>
+</dialog>
 
 <script>
 (function(){
@@ -1861,8 +1907,9 @@ function payload(){
       calibration_status: !cal.ok?'failed': (resid!=null&&resid>1.5) || (captureTilt!=null&&captureTilt>4) ? 'check' : 'ok' },
     point_source:Object.fromEntries(model.pins.map(p=>[p.key, src(p.key)])),
     points_px:Object.fromEntries(model.pins.filter(p=>pts[p.key]).map(p=>[p.key, pts[p.key].map(q=>[+q.x.toFixed(2),+q.y.toFixed(2)])])),
+    uuid: sessionId(),
     card_masked: REF.id==='card',
-    device:{ model: deviceModel(), app_version: APP_VERSION, platform: window.DigitalOlcu ? 'flutter_webview' : 'pwa' },
+    device:{ id: deviceId(), model: deviceModel(), app_version: APP_VERSION, platform: /appassets\.androidplatform/.test(location.host) ? 'android_apk' : 'pwa' },
     measurements: cal.ok?meas:null,
     fabric:{ stretch_level:stretch, stretch_source: isFinite(elast)?'label_elastane':'user_selected', elastane_pct:isFinite(elast)?elast:null,
       maximum_measurements: cal.ok ? Object.fromEntries(model.pins.filter(p=>p.half).map(p=>[(KEYNAME[p.key]||p.key).replace('_width_half','')+'_circumference_cm', r1(m[p.key]*2+bonus())])) : null,
@@ -1889,6 +1936,7 @@ function renderResult(){
   const lc=renderLabelCheck(m);
   $('listingBox').hidden = mode!=='seller'; $('listing').textContent=listingText(m, lc);
   $('json').textContent=JSON.stringify(payload(),null,2);
+  scheduleMeasurement();
 }
 $('chips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; stretch=b.dataset.s; [...$('chips').children].forEach(x=>x.setAttribute('aria-pressed',x===b)); renderResult(); });
 ['sku','tag','note'].forEach(id=>$(id).addEventListener('input',()=>{ if(step===5) renderResult(); }));
@@ -1917,34 +1965,83 @@ $('saveBtn').onclick=()=>{
   const meta = model.pins.slice(0,4).map(x=>`${x.label} ${(x.half?m[x.key]*2:m[x.key]).toFixed(0)}`).join(' · ');
   const h=loadH(); h.push({title:`${model.name} · ${who}`, size:sz.label, meta, payload:p});
   toast(saveH(h)?'Ölçülər saxlanıldı':'Bu brauzerdə yaddaş bağlıdır. JSON-u kopyalayın.'); renderHist();
+  if(!isDemo){ enqueueMeasurement().then(()=>enqueueEvent('status',{ uuid:sessionId(), status:'confirmed', label_size: mode==='seller'?($('tag').value.trim()||null):null })); }
 };
 
 
-/* ---------- Bazaya göndərmə (Cinarmall Flutter tətbiqi və ya birbaşa API) ----------
-   1) Flutter WebView: JavaScriptChannel "DigitalOlcu" varsa → postMessage(JSON) ; Flutter multipart yükləyir, cavabı
-      window.DigitalOlcuUploadResult({ok, id, server_values_cm, message}) ilə qaytarır.
-   2) window.DigitalOlcuConfig = {apiUrl, token, sku, productId, brand, mode} varsa → birbaşa fetch (multipart).
-   3) Heç biri yoxdursa düymə görünmür və şəkil telefondan çıxmır (məxfilik mətni dəyişmir). */
-const APP_VERSION='1.6.0';
-const UPLOAD = Object.assign({ apiUrl:null, token:null, sku:null, productId:null, brand:null, mode:null, allowDemo:false }, window.DigitalOlcuConfig||{});
-{ // Flutter URL ilə ötürür: ?app=1&sku=..&mode=seller&product_id=..&brand=..  (token URL-ə QOYULMUR, Flutter-də qalır)
-  const q=new URLSearchParams(location.search);
+/* ---------- Mərkəzi baza: avtomatik sinxronizasiya ----------
+   Telefon bir dəfə qoşulur (QR / link: ?pair=<base64url {u: server, k: cihaz açarı}>).
+   Sonra hər ölçmə (şəkil + JSON v5), təsdiq, səbəbli rədd və alıcı rəyi ÖZÜ göndərilir.
+   Standart "outbox" modeli: hər hadisə əvvəl telefonda (IndexedDB) növbəyə yazılır, sonra göndərilir;
+   internet yoxdursa itmir, artan fasilələrlə yenidən cəhd edilir; eyni ölçmə uuid ilə yenilənir (dublikat yaranmır). */
+const APP_VERSION='1.7.0';
+const UPLOAD = Object.assign({ apiUrl:null, token:null, sku:null, productId:null, brand:null, mode:null }, window.DigitalOlcuConfig||{});
+{ const q=new URLSearchParams(location.search);
   if(q.get('sku')) UPLOAD.sku=q.get('sku').slice(0,100); if(q.get('brand')) UPLOAD.brand=q.get('brand').slice(0,100);
   if(/^\d+$/.test(q.get('product_id')||'')) UPLOAD.productId=+q.get('product_id'); if(['seller','buyer'].includes(q.get('mode'))) UPLOAD.mode=q.get('mode'); }
-const uploadEnabled = () => !!(window.DigitalOlcu || UPLOAD.apiUrl);
+const LSx={ get:k=>{ try{ return JSON.parse(localStorage.getItem(k)); }catch(_){ return null; } }, set:(k,v)=>{ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(_){} } };
+const uuid4=()=>{ try{ return crypto.randomUUID(); }catch(_){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); }); } };
+function deviceId(){ let d=LSx.get('do_device_id'); if(!d){ d=uuid4(); LSx.set('do_device_id',d); } return d; }
 function deviceModel(){
   const ua=navigator.userAgent||''; const m=ua.match(/Android [\d.]+; ([^;)]+?)(?: Build|\))/);
   if(m) return m[1].trim(); if(/iPhone/.test(ua)) return 'iPhone'; if(/iPad/.test(ua)) return 'iPad'; return (navigator.platform||'unknown').slice(0,40);
 }
-// Kartın nömrəsi: kartın daxili hissəsi telefonda bulanıqlaşdırılıb rənglə örtülür; künclər (≈12%) açıq qalır ki,
-// moderator etalonu yoxlaya və AI kart küncünü öyrənə bilsin. A4/xətkeşdə örtmək lazım deyil.
+let sessionImg=null, sessionUuid=null;
+function sessionId(){ if(sessionImg!==img){ sessionImg=img; sessionUuid=uuid4(); } return sessionUuid; }
+
+// --- qoşulma ---
+let SYNC = LSx.get('do_sync_v1') || (UPLOAD.apiUrl ? { u:UPLOAD.apiUrl.replace(/\/$/,''), k:UPLOAD.token||'' } : null);
+function parsePair(text){
+  text=(text||'').trim(); if(!text) return null;
+  let code=text; try{ const u=new URL(text); code=u.searchParams.get('pair')||''; }catch(_){ }
+  try{ const j=JSON.parse(atob(code.replace(/-/g,'+').replace(/_/g,'/'))); if(/^https:\/\//.test(j.u)&&j.k) return { u:j.u.replace(/\/$/,''), k:j.k }; }catch(_){ }
+  return null;
+}
+async function pairWith(info){
+  if(!info){ toast('QR / link tanınmadı'); return false; }
+  if(!SYNC || SYNC.u!==info.u){
+    if(!window.confirm('Bu telefon Cinarmall mərkəzi bazasına qoşulur.\n\nBundan sonra çəkdiyiniz ölçmələr, şəkillər (kart nömrəsi örtülür), təsdiq/rədd qərarları və rəylər AVTOMATİK göndəriləcək.\n\nRazısınız?')) return false;
+  }
+  SYNC=info; LSx.set('do_sync_v1',SYNC); syncErr=null; privacyText();
+  try{ const r=await fetch(SYNC.u+'/api/v1/digital-olcu/ping',{ headers:authH() }); if(!r.ok) throw new Error(r.status===401?'açar yanlışdır':'server cavab vermədi');
+    toast('Bazaya qoşuldu ✓'); }catch(e){ syncErr=e.message; toast('Qoşuldu, amma server hələ cavab vermir: '+e.message); }
+  updatePill(); flush(); return true;
+}
+const authH=()=>SYNC&&SYNC.k?{ Authorization:'Bearer '+SYNC.k }:{};
+// Avtomatik qoşulma: noutbuk serveri cari ünvanını bu kanala yazır; tətbiq açılan kimi oxuyur. QR lazım deyil.
+const DISCOVERY='https://ntfy.sh/cinarmall-olcu-65n8oa2fmbqh9oqhireb6q/json?poll=1&since=24h';
+let discoverAt=0;
+async function discover(force){
+  if(SYNC&&!SYNC.auto) return;                       // əl ilə qoşulubsa toxunma
+  if(!force&&Date.now()-discoverAt<60000) return; discoverAt=Date.now();
+  try{
+    const t=await (await fetch(DISCOVERY,{cache:'no-store'})).text(); let best=null;
+    for(const line of t.split('\n')){ try{ const e=JSON.parse(line); const m=JSON.parse(e.message||'{}'); if(/^https:\/\//.test(m.u)&&m.k&&(!best||e.time>best.time)) best={time:e.time,u:m.u.replace(/\/$/,''),k:m.k}; }catch(_){ } }
+    if(best&&(!SYNC||SYNC.u!==best.u||SYNC.k!==best.k)){
+      const first=!SYNC; SYNC={u:best.u,k:best.k,auto:true}; LSx.set('do_sync_v1',SYNC); syncErr=null; privacyText();
+      if(first) toast('Mərkəzi bazaya avtomatik qoşuldu ✓'); updatePill(); flush();
+    }
+  }catch(_){ }
+}
+
+// --- növbə (IndexedDB; olmazsa yaddaşda) ---
+let idb=null, memQ=new Map(), seqN=0;
+const idbOpen=()=>new Promise(res=>{ try{ const r=indexedDB.open('do_outbox',1); r.onupgradeneeded=()=>r.result.createObjectStore('q',{keyPath:'id'}); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(_){ res(null); } });
+const idbReady=idbOpen().then(d=>{ idb=d; updatePill(); flush(); });
+function qTx(mode,fn){ return new Promise((res,rej)=>{ if(!idb){ res(fn(null)); return; } const t=idb.transaction('q',mode), st=t.objectStore('q'); let out; const r=fn(st); if(r&&'onsuccess' in r) r.onsuccess=()=>{ out=r.result; }; t.oncomplete=()=>res(out); t.onerror=()=>rej(t.error); }); }
+const qPut=item=>idb?qTx('readwrite',st=>st.put(item)):(memQ.set(item.id,item),Promise.resolve());
+const qDel=id=>idb?qTx('readwrite',st=>st.delete(id)):(memQ.delete(id),Promise.resolve());
+const qAll=()=>idb?qTx('readonly',st=>st.getAll()).then(a=>a||[]):Promise.resolve([...memQ.values()]);
+const qGet=id=>idb?qTx('readonly',st=>st.get(id)):Promise.resolve(memQ.get(id));
+let qCount=0, syncErr=null, flushing=false, flushAgain=false, lastOk=null;
+
+// kartın daxili telefonda örtülür (künclər açıq qalır ki, etalon yoxlanılsın)
 function maskedImageBlob(){
   return new Promise((res,rej)=>{
     const c=document.createElement('canvas'); c.width=iw; c.height=ih; const g=c.getContext('2d'); g.drawImage(img,0,0,iw,ih);
     if(REF.id==='card' && card.length===4){
       const cx=card.reduce((t,p)=>t+p.x,0)/4, cy=card.reduce((t,p)=>t+p.y,0)/4, inset=.12;
       const poly=card.map(p=>({x:p.x+(cx-p.x)*inset, y:p.y+(cy-p.y)*inset}));
-      // orta rəng
       let r=0,gg=0,b=0,n=0; try{ const xs=card.map(p=>p.x), ys=card.map(p=>p.y), x0=Math.max(0,Math.min(...xs)|0), y0=Math.max(0,Math.min(...ys)|0);
         const w=Math.max(1,Math.min(iw,Math.max(...xs))-x0|0), h=Math.max(1,Math.min(ih,Math.max(...ys))-y0|0), d=g.getImageData(x0,y0,w,h).data;
         for(let i=0;i<d.length;i+=16){ r+=d[i]; gg+=d[i+1]; b+=d[i+2]; n++; } }catch(_){ }
@@ -1955,49 +2052,118 @@ function maskedImageBlob(){
     c.toBlob(bl=>bl?res(bl):rej(new Error('Şəkil hazırlanmadı')),'image/jpeg',.9);
   });
 }
-const blobToDataUrl=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
-function setUploadNote(t,cls){ const n=$('uploadNote'); n.hidden=!t; n.textContent=t||''; n.style.color=cls==='err'?'var(--bad,#c13a3a)':cls==='ok'?'var(--ok,#1a7f4b)':''; }
-let uploading=false, lastUploadSig=null;
-async function uploadMeasurement(){
-  if(uploading) return; const cal=calibrate(); if(!cal.ok){ toast('Əvvəl etalonu düzgün yerləşdirin'); return; }
-  if(isDemo && !UPLOAD.allowDemo){ toast('Nümunə şəkli bazaya göndərilmir'); return; }
-  const p=payload(), sig=JSON.stringify([p.points_px,p.calibration.reference_corners_px,p.sku]);
-  if(sig===lastUploadSig){ toast('Bu ölçü artıq göndərilib'); return; }
-  uploading=true; $('uploadBtn').disabled=true; setUploadNote('Göndərilir…');
+
+const canSync=()=>!!img && !isDemo;   // server hələ tapılmayıbsa da növbəyə yazılır
+let measT=null;
+function scheduleMeasurement(){ clearTimeout(measT); if(canSync()) measT=setTimeout(enqueueMeasurement,1200); }
+async function enqueueMeasurement(){
+  clearTimeout(measT); measT=null;
+  if(!canSync()) return; const cal=calibrate(); if(!cal.ok) return;
+  await idbReady;
+  const p=payload(), id='m:'+p.uuid, old=await qGet(id);
+  const item={ id, kind:'measurement', uuid:p.uuid, seq: old?old.seq:Date.now()*1000+(seqN++), payload:p, tries:0, next_at:0,
+    image: old&&old.image ? old.image : (sentImages.has(p.uuid) ? null : await maskedImageBlob()) };
+  await qPut(item); updatePill(); flush();
+}
+const sentImages=new Set(LSx.get('do_sent_images')||[]);
+async function enqueueEvent(kind, body){
+  await idbReady;
+  if(measT) await enqueueMeasurement();
+  const ev=uuid4(); await qPut({ id:kind[0]+':'+ev, kind, seq:Date.now()*1000+(seqN++), body:Object.assign({ event_id:ev, at:new Date().toISOString() }, body), tries:0, next_at:0 });
+  updatePill(); flush(); return true;
+}
+
+async function sendItem(it){
+  const base=SYNC.u+'/api/v1/digital-olcu';
+  if(it.kind==='measurement'){
+    const fd=new FormData(); fd.append('payload',JSON.stringify(it.payload)); if(it.image) fd.append('image',it.image,'olcu.jpg');
+    fd.append('device_model',it.payload.device?.model||''); fd.append('app_version',APP_VERSION);
+    const r=await fetch(base+'/measurements',{ method:'POST', body:fd, headers:Object.assign({Accept:'application/json'},authH()) });
+    if(r.ok){ sentImages.add(it.uuid); LSx.set('do_sent_images',[...sentImages].slice(-500)); }
+    return r;
+  }
+  const url = it.kind==='status' ? `${base}/measurements/client/${it.body.uuid}/status` : base+'/feedback';
+  return fetch(url,{ method:'POST', body:JSON.stringify(it.body), headers:Object.assign({'Content-Type':'application/json',Accept:'application/json'},authH()) });
+}
+async function flush(){
+  if(!SYNC) { updatePill(); return; }
+  if(flushing){ flushAgain=true; return; } flushing=true; flushAgain=false;
   try{
-    const blob=await maskedImageBlob();
-    if(window.DigitalOlcu && window.DigitalOlcu.postMessage){
-      window.DigitalOlcu.postMessage(JSON.stringify({ type:'upload', payload:p, image_base64:await blobToDataUrl(blob), device_model:p.device.model, app_version:APP_VERSION }));
-      lastUploadSig=sig; return;   // nəticə DigitalOlcuUploadResult ilə gəlir
+    const items=(await qAll()).sort((a,b)=>a.seq-b.seq);
+    for(const it of items){
+      if(it.next_at>Date.now()) continue;
+      let r; try{ r=await sendItem(it); }catch(e){ syncErr='internet / server əlçatan deyil'; await backoff(it); discover(); break; }
+      if(r.ok){ await qDel(it.id); syncErr=null; lastOk=new Date(); continue; }
+      if(r.status===401){ syncErr='açar etibarsızdır'; discover(true); break; }
+      if(r.status===422||r.status===413){ const d=await r.json().catch(()=>({})); console.warn('rədd edildi',d); await qDel(it.id); continue; }   // düzəlməyən səhv: növbəni bağlamasın
+      syncErr='server xətası '+r.status; await backoff(it);
     }
-    const fd=new FormData(); fd.append('payload',JSON.stringify(p)); fd.append('image',blob,'olcu.jpg');
-    fd.append('device_model',p.device.model); fd.append('app_version',APP_VERSION);
-    const r=await fetch(UPLOAD.apiUrl.replace(/\/$/,'')+'/api/v1/digital-olcu/measurements',{ method:'POST', body:fd,
-      headers:Object.assign({Accept:'application/json'}, UPLOAD.token?{Authorization:'Bearer '+UPLOAD.token}:{}) });
-    const d=await r.json().catch(()=>({}));
-    lastUploadSig = r.ok ? sig : null;
-    window.DigitalOlcuUploadResult(Object.assign({ok:r.ok}, d));
-  }catch(e){ window.DigitalOlcuUploadResult({ok:false, message:e.message}); }
+  }finally{ flushing=false; updatePill(); if(flushAgain){ flushAgain=false; setTimeout(flush,50); } }
 }
-window.DigitalOlcuUploadResult = function(d){
-  uploading=false; $('uploadBtn').disabled=false;
-  if(!d || !d.ok){ lastUploadSig=null; setUploadNote('Göndərilmədi: '+((d&&d.message)||'bağlantı xətası')+'. Yenidən cəhd edin.','err'); toast('Göndərilmədi'); return; }
-  const mm=(d.mismatch_keys||[]).length;
-  setUploadNote(`Bazaya göndərildi (#${d.id}).`+(mm?` Serverin hesabı ${mm} ölçüdə fərqlidir, moderator yoxlayacaq.`:''),'ok'); toast('Bazaya göndərildi');
+async function backoff(it){ it.tries=(it.tries||0)+1; it.next_at=Date.now()+Math.min(600000, 5000*2**Math.min(it.tries,7)); await qPut(it); }
+
+async function updatePill(){
+  const pill=$('syncPill'); if(!pill) return;
+  qCount=(await qAll()).length;
+  pill.className='sync '+(!SYNC?'':syncErr?'err':qCount?'wait':'ok');
+  pill.textContent=!SYNC?'Baza: axtarılır…':syncErr?`Baza: bağlantı yoxdur${qCount?' ('+qCount+')':''}`:qCount?`Baza: göndərilir (${qCount})`:'Baza ✓';
+  const n=$('syncNote'); if(n) n.textContent=!SYNC?'Baza serveri axtarılır (noutbuk açıq və internetdə olmalıdır). Ölçülər telefonda saxlanılır, server tapılan kimi göndəriləcək.'
+    : syncErr?`Növbədə ${qCount} qeyd var, bağlantı bərpa olunanda özü göndəriləcək (${syncErr}).`
+    : qCount?`Göndərilir: ${qCount}…`:'Ölçülər, şəkil və qərarlar avtomatik bazaya göndərilir.';
+  const st=$('pairState'); if(st) st.textContent=SYNC?`Qoşulub: ${SYNC.u.replace('https://','')} · növbədə ${qCount}${syncErr?' · '+syncErr:''}${lastOk?' · son göndərmə '+lastOk.toLocaleTimeString('az-AZ'):''}`:'Server avtomatik axtarılır. Tapılmasa: admin paneldəki QR kodu oxudun və ya linki yapışdırın.';
+}
+function privacyText(){
+  $('privH').textContent='Ölçmələr mərkəzi bazaya gedir.';
+  $('privP').textContent='Ölçmə telefonun içində aparılır. Bu telefon Cinarmall bazasına qoşulub: hər ölçmə, şəkil, təsdiq/rədd qərarı və rəy avtomatik göndərilir ki, dəqiqlik yoxlanılsın. Kartın nömrəsi göndərilməzdən əvvəl telefonun özündə örtülür.';
+  $('privTags').innerHTML='<span>hesablama → telefonda</span><span>kart nömrəsi → örtülü</span><span>baza → avtomatik</span>';
+}
+
+// --- QR oxuma ---
+let scanStream=null, scanLoop=null;
+async function startScan(){
+  if(!('BarcodeDetector' in window)){ toast('Bu brauzer QR oxumur: linki yapışdırın'); $('pairInput').focus(); return; }
+  try{
+    const det=new BarcodeDetector({formats:['qr_code']}); const v=$('pairVideo');
+    scanStream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false });
+    v.srcObject=scanStream; v.hidden=false; await v.play();
+    scanLoop=setInterval(async()=>{ try{ const c=await det.detect(v); if(c.length){ const info=parsePair(c[0].rawValue); if(info){ stopScan(); if(await pairWith(info)) $('pairDlg').close(); } } }catch(_){ } },350);
+  }catch(e){ toast('Kamera açılmadı: '+e.message); stopScan(); }
+}
+function stopScan(){ clearInterval(scanLoop); scanLoop=null; if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; } const v=$('pairVideo'); if(v){ v.hidden=true; v.srcObject=null; } }
+$('syncPill').onclick=()=>{ updatePill(); $('pairDlg').showModal(); };
+$('pairScan').onclick=startScan;
+$('pairOk').onclick=async()=>{ if(await pairWith(parsePair($('pairInput').value))){ stopScan(); $('pairDlg').close(); } };
+$('pairSync').onclick=()=>{ qAll().then(a=>Promise.all(a.map(it=>{ it.next_at=0; return qPut(it); }))).then(flush); };
+$('pairOff').onclick=()=>{ if(!window.confirm('Bazadan ayrılsın? Növbədəki qeydlər telefonda qalacaq.')) return; SYNC=null; LSx.set('do_sync_v1',null); location.reload(); };
+$('pairClose').onclick=()=>{ stopScan(); $('pairDlg').close(); };
+$('pairDlg').addEventListener('close',stopScan);
+
+// --- hadisələr ---
+$('rejReasons').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...$('rejReasons').children].forEach(x=>x.setAttribute('aria-pressed',x===b)); $('rejText').value=b.dataset.r; });
+$('rejBtn').onclick=async()=>{
+  const reason=$('rejText').value.trim(); if(!reason){ toast('Rədd səbəbini seçin və ya yazın'); return; }
+  if(!img){ toast('Əvvəl ölçün'); return; }
+  await enqueueMeasurement(); await enqueueEvent('status',{ uuid:sessionId(), status:'rejected', reason });
+  $('rejectBox').open=false; toast('Rədd edildi, səbəb bazaya göndərilir');
 };
-if(uploadEnabled()){
-  $('uploadBtn').hidden=false; $('uploadBtn').onclick=uploadMeasurement;
-  // məxfilik mətni dürüst olsun: şəkil yalnız düymə basılanda gedir
-  $('privH').textContent='Şəkil yalnız siz göndərəndə gedir.';
-  $('privP').textContent='Ölçmə telefonun içində aparılır. "Bazaya göndər" düyməsini basanda şəkil və ölçülər Cinarmall-a göndərilir ki, ölçülərin dəqiqliyi yoxlanılsın. Kartın nömrəsi göndərilməzdən əvvəl telefonun özündə örtülür.';
-  $('privTags').innerHTML='<span>hesablama → telefonda</span><span>kart nömrəsi → örtülü</span><span>göndərmə → yalnız sizin razılığınızla</span>';
-  if(UPLOAD.sku) $('sku').value=UPLOAD.sku;
-}
+$('fitChips').addEventListener('click',async e=>{ const b=e.target.closest('button'); if(!b) return;
+  [...$('fitChips').children].forEach(x=>x.setAttribute('aria-pressed',x===b));
+  await enqueueMeasurement(); await enqueueEvent('feedback',{ measurement_uuid:sessionId(), fit:b.dataset.f, ordered_size:null });
+  toast('Rəyiniz göndərilir, təşəkkürlər'); });
+
+{ const q=new URLSearchParams(location.search), pc=q.get('pair');
+  if(pc){ q.delete('pair'); history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash); setTimeout(()=>pairWith(parsePair(pc)),300); } }
+if(UPLOAD.sku) $('sku').value=UPLOAD.sku;
+privacyText();
+discover(true);
+addEventListener('online',()=>{ syncErr=null; discover(true); flush(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ discover(); flush(); } });
+setInterval(flush,30000);
 
 /* ---------- Mode ---------- */
 function setMode(m){
   mode=m; $('mSeller').setAttribute('aria-pressed',m==='seller'); $('mBuyer').setAttribute('aria-pressed',m==='buyer');
-  $('sellerFields').hidden=m!=='seller'; $('buyerFields').hidden=m!=='buyer';
+  $('sellerFields').hidden=m!=='seller'; $('buyerFields').hidden=m!=='buyer'; $('fitBox').hidden=m!=='buyer'; $('rejectBox').hidden=m!=='seller';
   $('photoLead').textContent = m==='seller' ? 'Satış üçün məhsulun şəklini çəkin. Ölçülər məhsul kartına yazılacaq.' : 'Sizə ən yaxşı oturan paltarınızı çəkin. Onun ölçüsünə görə sizə uyğun ölçünü tapacağıq.';
   if(step===5) renderResult();
 }
