@@ -796,20 +796,27 @@ const CardDetect = (function(){
     for(let i=0;i<reg.mask.length;i++) if(reg.mask[i]){ const x=i%W.w, y=(i/W.w)|0, d=(x-cx)**2+(y-cy)**2; if(d<bd){bd=d;best=i;} }
     return toFull(W,{x:best%W.w+.5, y:((best/W.w)|0)+.5});
   }
-  function scoreOf(a){ return a.fill - Math.abs(a.aspect-1.586)*0.6 - (a.opp-1)*0.3 + Math.min(a.contrast||0,120)/100; }
+  function scoreOf(a){ return a.fill - Math.abs(a.aspect-1.586)*0.6 - (a.opp-1)*0.3 + Math.min(a.contrast||0,120)/100 - Math.min(a.rarity||0,6)*0.05; }
   const inQ=(p,q)=>{ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=q[j]; if(((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)) ins=!ins; } return ins; };
-  // how strongly the region stands out from a thin ring around it (a card does, a patch of floor does not)
+  // how strongly the region stands out on EACH side (a card on the floor does; a strip of floor
+  // between two dark trouser legs only does on two sides)
   function contrast(W, q){
-    const cx=q.reduce((s,p)=>s+p.x,0)/4, cy=q.reduce((s,p)=>s+p.y,0)/4, sc=f=>q.map(p=>({x:cx+(p.x-cx)*f, y:cy+(p.y-cy)*f}));
-    const qi=sc(0.8), qa=sc(1.12), qb=sc(1.35); let ni=0,no=0; const si=[0,0,0], so=[0,0,0];
-    const xs=qb.map(p=>p.x), ys=qb.map(p=>p.y);
-    for(let y=Math.max(0,Math.floor(Math.min(...ys))); y<=Math.min(W.h-1,Math.ceil(Math.max(...ys))); y++)
-      for(let x=Math.max(0,Math.floor(Math.min(...xs))); x<=Math.min(W.w-1,Math.ceil(Math.max(...xs))); x++){
-        const p={x,y}, i=y*W.w+x;
-        if(inQ(p,qi)){ si[0]+=W.R[i]; si[1]+=W.G[i]; si[2]+=W.B[i]; ni++; }
-        else if(inQ(p,qb) && !inQ(p,qa)){ so[0]+=W.R[i]; so[1]+=W.G[i]; so[2]+=W.B[i]; no++; } }
-    if(!ni||!no) return 0;
-    return Math.hypot(si[0]/ni-so[0]/no, si[1]/ni-so[1]/no, si[2]/ni-so[2]/no);
+    const cx=q.reduce((s,p)=>s+p.x,0)/4, cy=q.reduce((s,p)=>s+p.y,0)/4;
+    const smp=(x,y)=>{ x=Math.round(x); y=Math.round(y); if(x<0||y<0||x>=W.w||y>=W.h) return null; const i=y*W.w+x; return [W.R[i],W.G[i],W.B[i]]; };
+    const inner=[0,0,0]; let ni=0;
+    for(let u=0.2;u<=0.8;u+=0.1) for(let v=0.2;v<=0.8;v+=0.1){
+      const top={x:q[0].x+(q[1].x-q[0].x)*u, y:q[0].y+(q[1].y-q[0].y)*u}, bot={x:q[3].x+(q[2].x-q[3].x)*u, y:q[3].y+(q[2].y-q[3].y)*u};
+      const c=smp(top.x+(bot.x-top.x)*v, top.y+(bot.y-top.y)*v); if(c){ inner[0]+=c[0]; inner[1]+=c[1]; inner[2]+=c[2]; ni++; } }
+    if(!ni) return 0; inner[0]/=ni; inner[1]/=ni; inner[2]/=ni;
+    const short=Math.min(...[0,1,2,3].map(i=>Math.hypot(q[(i+1)%4].x-q[i].x,q[(i+1)%4].y-q[i].y)));
+    let worst=Infinity;
+    for(let i=0;i<4;i++){ const a=q[i], b=q[(i+1)%4], L=Math.hypot(b.x-a.x,b.y-a.y);
+      let nx=-(b.y-a.y)/L, ny=(b.x-a.x)/L; if(((a.x+b.x)/2-cx)*nx+((a.y+b.y)/2-cy)*ny<0){ nx=-nx; ny=-ny; }
+      const o=[0,0,0]; let no=0;
+      for(let t=0.2;t<=0.8;t+=0.1) for(const off of [0.18,0.28]){ const c=smp(a.x+(b.x-a.x)*t+nx*short*off, a.y+(b.y-a.y)*t+ny*short*off); if(c){ o[0]+=c[0]; o[1]+=c[1]; o[2]+=c[2]; no++; } }
+      if(!no) return 0;
+      worst=Math.min(worst, Math.hypot(inner[0]-o[0]/no, inner[1]-o[1]/no, inner[2]-o[2]/no)); }
+    return worst;
   }
   // final pass on the full-resolution photo: slide each side onto the strongest colour edge
   // (sub-pixel), drop outliers such as a wood knot touching the card, refit and intersect
@@ -855,16 +862,19 @@ const CardDetect = (function(){
     const W=sample(src,0,0,src.width,src.height,480), n=W.w*W.h, visited=new Uint8Array(n);
     let best=null;
     const step=Math.max(4, Math.round(Math.min(W.w,W.h)/40));
-    for(const p of [PARAMS[1],PARAMS[2]]){
+    for(const p of PARAMS){
       visited.fill(0);
       for(let y=step;y<W.h-step;y+=step) for(let x=step;x<W.w-step;x+=step){
         const i=y*W.w+x; if(visited[i]) continue;
         const r=flood(W,i,{...p,maxArea:0.12},visited); if(!r || r.area<0.0012*n) continue;
         const a=analyse(r,W); if(!a||!a.valid) continue;
         a.contrast=contrast(W,a.corners); if(a.contrast<22) continue;
+        // a card's colour is rare in the photo; a patch of floor or of the garment is not
+        { let mr=0,mg=0,mb=0,cnt=0; for(let k=0;k<r.mask.length;k+=2) if(r.mask[k]){ mr+=W.R[k]; mg+=W.G[k]; mb+=W.B[k]; cnt++; }
+          mr/=cnt; mg/=cnt; mb/=cnt; let sim=0; for(let k=0;k<n;k+=2) if(Math.abs(W.R[k]-mr)+Math.abs(W.G[k]-mg)+Math.abs(W.B[k]-mb)<45) sim++;
+          a.rarity=(sim*2)/r.area; if(a.rarity>6) continue; }
         const sc=scoreOf(a); if(!best||sc>best.sc) best={sc, a, seed:seedInside(r,W,a.corners), W};
       }
-      if(best) break;
     }
     if(!best) return null;
     const coarse=best.a.corners.map(p=>toFull(best.W,p));
@@ -922,7 +932,7 @@ const GarmentAuto = (function(){
     const d=g.getImageData(0,0,w,h).data, n=w*h, R=new Float32Array(n), G=new Float32Array(n), B=new Float32Array(n);
     // features: colour relative to brightness (a shadow keeps it, a different fabric does not) + damped brightness
     for(let i=0,j=0;i<n;i++,j+=4){ const r=d[j],gg=d[j+1],b=d[j+2], L=(r+gg+b)/3, k=100/(L+20);
-      R[i]=(r-gg)*k; G[i]=((r+gg)/2-b)*k; B[i]=0.3*L; }
+      R[i]=(r-gg)*k; G[i]=((r+gg)/2-b)*k; B[i]=0.45*L; }
     return {w,h,s,R,G,B};
   }
   function inQuad(p,q){ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=q[j]; if(((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)) ins=!ins; } return ins; }
@@ -977,7 +987,11 @@ const GarmentAuto = (function(){
       CC=CC.map((c,k)=>cnt[k]?[acc[k][0]/cnt[k],acc[k][1]/cnt[k],acc[k][2]/cnt[k]]:c);
     }
     // a cluster seen on only a sliver of the border is probably the garment itself touching the edge
-    const bg=CC.filter((_,k)=>cnt[k]>=0.015*S.length);
+    // a colour is background if the border holds its fair share of it; a colour that sits mostly in the
+    // middle of the photo (a dark garment that brushes a shadowed edge) is not background
+    const imgCnt=new Array(K).fill(0); let imgTot=0;
+    for(let i=0;i<n;i+=4){ let bi=0,bd=Infinity; for(let k=0;k<CC.length;k++){ const c=CC[k], d=(R[i]-c[0])**2+(G[i]-c[1])**2+(B[i]-c[2])**2; if(d<bd){bd=d;bi=k;} } imgCnt[bi]++; imgTot++; }
+    const bg=CC.filter((_,k)=>cnt[k]>=0.015*S.length && (cnt[k]/S.length)*3 >= imgCnt[k]/imgTot);
     // 2. colour distance to the nearest background cluster, Otsu threshold
     const D=new Float32Array(n), hist=new Float64Array(256); let cntH=0;
     for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; let m=Infinity;
@@ -988,8 +1002,28 @@ const GarmentAuto = (function(){
     for(let t=0;t<256;t++){ wB+=hist[t]; if(!wB) continue; const wF=cntH-wB; if(!wF) break; sB+=t*hist[t];
       const mB=sB/wB, mF=(sum-sB)/wF, v=wB*wF*(mB-mF)*(mB-mF); if(v>best){best=v;thr=t;} }
     thr=Math.max(14, thr/3);
-    let M=new Uint8Array(n);
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; M[i]=(D[i]>thr && !isCard(x,y))?1:0; }
+    let M=new Uint8Array(n); const Ms=new Uint8Array(n);
+    // learn the garment's own colours from pixels that are certainly not background, then give
+    // every pixel to whichever model (garment or background) it is closer to. A brightly lit patch of
+    // floor is far from the border's colours, but still closer to them than to the garment.
+    { const hi=Math.max(thr*1.5, thr+12), GS=[];
+      for(let i=0;i<n;i+=3) if(D[i]>hi && !isCard(i%w,(i/w)|0)) GS.push([R[i],G[i],B[i]]);
+      let gm=null;
+      if(GS.length>200){
+        let GC=[GS[0]]; while(GC.length<5){ let bi=0,bd=-1; for(let i=0;i<GS.length;i+=2){ const p=GS[i]; let m=Infinity;
+            for(const c of GC){ const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2; if(d<m) m=d; } if(m>bd){bd=m;bi=i;} } GC.push(GS[bi]); }
+        let gc=new Array(GC.length).fill(0);
+        for(let it=0; it<8; it++){ const acc=GC.map(()=>[0,0,0]); gc=new Array(GC.length).fill(0);
+          for(const p of GS){ let bi=0,bd=Infinity; GC.forEach((c,k)=>{ const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2; if(d<bd){bd=d;bi=k;} });
+            acc[bi][0]+=p[0]; acc[bi][1]+=p[1]; acc[bi][2]+=p[2]; gc[bi]++; }
+          GC=GC.map((c,k)=>gc[k]?[acc[k][0]/gc[k],acc[k][1]/gc[k],acc[k][2]/gc[k]]:c); }
+        gm=GC.filter((_,k)=>gc[k]>=0.03*GS.length);
+      }
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; Ms[i]=(D[i]>thr && !isCard(x,y))?1:0; if(isCard(x,y)){ M[i]=0; continue; }
+        if(!gm){ M[i]=D[i]>thr?1:0; continue; }
+        if(D[i]<=thr*0.6){ M[i]=0; continue; }
+        let dg=Infinity; for(const c of gm){ const d=(R[i]-c[0])**2+(G[i]-c[1])**2+(B[i]-c[2])**2; if(d<dg) dg=d; }
+        M[i]= Math.sqrt(dg) < D[i] ? 1 : 0; } }
     const ro=Math.max(1,Math.round(0.4*(ppc||4)));
     const q=new Int32Array(n);
     // clean a raw mask: close small gaps, open (~0.8 cm, cuts thin floor seams), keep the largest blob, fill its holes
@@ -1010,7 +1044,10 @@ const GarmentAuto = (function(){
       for(let i=0;i<n;i++) C[i]=out[i]?0:1;
       return C;
     };
-    let C=clean(M); if(!C) return {ok:false, reason:'paltar'};
+    // the colour-model mask may only trim the plain one (a lit patch of floor), never gut it
+    let C=clean(M); const Cs=clean(Ms);
+    if(Cs){ let a1=0,a2=0; for(let i=0;i<n;i++){ a1+=C?C[i]:0; a2+=Cs[i]; } if(!C || a1<0.75*a2) C=Cs; }
+    if(!C) return {ok:false, reason:'paltar'};
     let area=0; for(let i=0;i<n;i++) area+=C[i];
     let edge=0; for(let x=0;x<w;x++){ edge+=C[x]+C[(h-1)*w+x]; } for(let y=0;y<h;y++){ edge+=C[y*w]+C[y*w+w-1]; }
     const frac=area/n;
@@ -1033,7 +1070,7 @@ const GarmentAuto = (function(){
     return {T,B:Bt,y0,y1,x0,x1,runs};
   }
   const median=a=>{ const s=a.slice().sort((p,q)=>p-q); return s.length?s[s.length>>1]:0; };
-  function runAt(g,y,x){ const r=g.runs(y); let best=null,bd=Infinity;
+  function runAt(g,y,x){ const r0=g.runs(y); const r=[]; for(const s of r0){ if(r.length && s[0]-r[r.length-1][1] <= (g.gap||2)) r[r.length-1]=[r[r.length-1][0], s[1]]; else r.push(s.slice()); } let best=null,bd=Infinity;
     for(const s of r){ if(x>=s[0]&&x<s[1]) return s; const d=Math.min(Math.abs(x-s[0]),Math.abs(x-s[1])); if(d<bd){bd=d;best=s;} } return best; }
 
   function tops(g, cat, ppc){
@@ -1050,6 +1087,7 @@ const GarmentAuto = (function(){
       if(hist.length>=5){ const loc=median(hist.slice(-10));
         if(v>loc*1.16 && maxY!==null){ ya=y+1; break; }
         const step=Math.round(ppc), wb=width(y+step); if(wb && v-wb>1.5*ppc){ ya=y+step; break; }
+        if(wb && wb-v>1.5*ppc && y<g.y0+0.6*H){ ya=y+step; break; }
         if(maxY!==null && maxW>minW*1.02 && v<maxW*0.965){ ya=maxY; break; } }
       const rose=maxW>minW*1.02;
       if(v<minW && !rose){ minW=v; maxW=v; maxY=y; } else if(v>maxW){ maxW=v; maxY=y; }
@@ -1067,7 +1105,7 @@ const GarmentAuto = (function(){
     const sw=runAt(g,yw,cx); if(sw){ pts.waist=[{x:sw[0],y:yw},{x:sw[1],y:yw}]; conf.waist=armOK; }
     if(cat==='dress'){ const yh=Math.min(g.y1-Math.round(2*ppc), yw+Math.round(20*ppc)); const s=runAt(g,yh,cx);
       if(s){ pts.hip=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hip=armOK; } }
-    if(cat==='tank'){ const yh=g.y1-Math.round(0.5*ppc); const s=runAt(g,yh,cx); if(s){ pts.hem=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hem=true; } }
+    if(cat==='tank'){ const yh=g.y1-Math.round(2*ppc); const s=runAt(g,yh,cx); if(s){ pts.hem=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hem=true; } }
     // high point of shoulder (top of the garment next to the neck), on each side
     const hps=side=>{ let bx=-1, by=Infinity;
       const a=side<0?cx-0.45*Wc:cx+0.03*Wc, b=side<0?cx-0.03*Wc:cx+0.45*Wc;
@@ -1124,7 +1162,7 @@ const GarmentAuto = (function(){
     const mids=[]; for(let y=g.y0+0.01*H;y<=g.y0+0.08*H;y+=1){ const r=g.runs(y); if(!r.length) continue;
       const wd=r.reduce((a,b)=>(b[1]-b[0]>a[1]-a[0]?b:a)); mids.push((wd[0]+wd[1])/2); }
     const cx=median(mids);
-    const yw=g.y0+Math.round(0.6*ppc), s0=runAt(g,yw,cx);
+    const yw=g.y0+Math.round(2.0*ppc), s0=runAt(g,yw,cx);
     if(s0){ pts.waist=[{x:s0[0],y:yw},{x:s0[1],y:yw}]; conf.waist=true; }
     // crotch: first row where the shape splits into two legs around the centre
     let yc=null, xc=cx;
@@ -1148,6 +1186,11 @@ const GarmentAuto = (function(){
     const legL=y=>{ const cut=inL?inL.a+inL.b*y:xc; let s0=null; for(const s of g.runs(y)) if(s[0]<cut-1) s0=s;
       return s0 ? [s0[0], Math.min(s0[1], Math.max(cut, s0[0]+1))] : null; };
     const legR=y=>{ const cut=inR?inR.a+inR.b*y:xc; for(const s of g.runs(y)) if(s[1]>cut+1) return [Math.min(Math.max(s[0],cut), s[1]-1), s[1]]; return null; };
+    { // the gap between the legs is only detectable once it is a few mm wide: extend it up to where it closes
+      const P=[]; for(let y=yc; y<=yc+2.5*ppc; y++){ const a=legL(y), b=legR(y); if(a&&b&&g.runs(y).length>=2) P.push([y, b[0]-a[1]]); }
+      if(P.length>=5){ let n=P.length,sy=0,sg=0,syy=0,syg=0; for(const [y,gp] of P){ sy+=y; sg+=gp; syy+=y*y; syg+=y*gp; }
+        const bb=(n*syg-sy*sg)/(n*syy-sy*sy), aa=(sg-bb*sy)/n;
+        if(bb>0.15){ const y0c=Math.max(yc-4*ppc, Math.min(yc, -aa/bb)); yc=Math.round(y0c); } } }
     { const y3=Math.round(yc+3*ppc), a=legL(y3), b=legR(y3);
       if(!a||!b||b[0]-a[1]<1.0*ppc) crotchExtrap=true; }
     const yt=Math.round(yc+2.5*ppc), st=legL(yt);
@@ -1156,7 +1199,7 @@ const GarmentAuto = (function(){
     const sr=legR(yR1-1); if(sr){ pts.inseam=[{x:xc,y:yc},{x:sr[0],y:yR1}]; conf.inseam=!crotchExtrap; }
     const sm=legL(Math.round(yc+5*ppc));
     if(sm){ const x=Math.round((sm[0]+sm[1])/2); pts.length=[{x,y:g.T[x]-0.5},{x,y:g.B[x]+0.5}]; conf.length=true; }
-    if(cat==='pants'){ const yb=yL1-Math.round(0.5*ppc), s=legL(yb); if(s){ pts.hem=[{x:s[0],y:yb},{x:s[1],y:yb}]; conf.hem=true; } }
+    if(cat==='pants'){ const yb=yL1-Math.round(2*ppc), s=legL(yb); if(s){ pts.hem=[{x:s[0],y:yb},{x:s[1],y:yb}]; conf.hem=true; } }
     return {pts,conf};
   }
 
@@ -1184,7 +1227,7 @@ const GarmentAuto = (function(){
         if(xi>=0&&yi>=0&&xi<W.w&&yi<W.h) R[y*W.w+x]=seg.M[yi*W.w+xi]; }
       M=R;
     }
-    const g=geometry(M,W.w,W.h);
+    const g=geometry(M,W.w,W.h); g.gap=Math.max(2,Math.round(0.8*ppc));
     const r = TOPS[cat] ? tops(g,cat,ppc) : bottoms(g,cat,ppc);
     const back=p=>{ const q=rot(p,ang); return {x:q.x/W.s, y:q.y/W.s}; };
     const pts={}; for(const k in r.pts) pts[k]=r.pts[k].map(back);
@@ -1196,7 +1239,9 @@ const GarmentAuto = (function(){
       if(ch&&wa&&(wa/ch<0.7||wa/ch>1.35)){ bad('chest'); bad('waist'); }
       if(ch&&sh&&(sh>ch*1.15)) bad('shoulder');
       if(ch&&le&&(le<ch*0.8)) bad('length');
-      if(hp&&wa&&(hp<wa*0.85)) { bad('hip'); bad('waist'); } }
+      if(hp&&wa&&(hp<wa*0.85)) { bad('hip'); bad('waist'); }
+      if(hp&&wa&&(wa<hp*0.7)) { bad('waist'); }
+      const ins=L('inseam'); if(ins&&le&&(ins/le<0.5||ins/le>0.9)) { bad('inseam'); bad('length'); } }
     const conf={}; for(const k in r.conf) conf[k]=r.conf[k] && !cut;
     return {ok:true, pts, conf, cut};
   }
