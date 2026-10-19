@@ -164,6 +164,12 @@ details[open] summary{margin-bottom:8px}
 .dots span{font-size:11px;color:var(--muted);white-space:nowrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:30;max-width:90vw;text-align:center}
 /* live camera */
+.level{position:absolute;left:50%;top:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,255,255,.7);pointer-events:none}
+.level::before{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px dashed rgba(255,255,255,.8)}
+.level i{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#fbbf24;box-shadow:0 0 0 3px rgba(0,0,0,.35)}
+.level.ok i{background:#22e07a}
+.level b{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:8px;white-space:nowrap;font:600 13px var(--f-body);background:rgba(0,0,0,.55);padding:4px 10px;border-radius:999px}
+.level.ok{border-color:#22e07a}
 .cam{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:flex;flex-direction:column}
 .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 .camguide{position:absolute;inset:14% 10% 22%;border:2px dashed rgba(255,255,255,.55);border-radius:14px;pointer-events:none}
@@ -264,8 +270,9 @@ details[open] summary{margin-bottom:8px}
     <div class="box">
       <span class="eyebrow">Dəqiq nəticə üçün</span>
       <ul class="tips" style="margin-top:8px">
+        <li>Paltarı <b>dik</b> qoyun: yaxa və ya bel yuxarıda olsun (yan düşübsə, proqramda "⟳ Döndər" basın).</li>
         <li>Paltarı hamarlayın, qolları və balaqları düz uzadın.</li>
-        <li>Kartı paltarın yanına, eyni səthə qoyun.</li>
+        <li>Kartı paltarın yanına, eyni səthə qoyun. <b>A4 vərəq</b> daha dəqiqdir: telefon bir az maili olsa belə düzəldilir.</li>
         <li>Telefonu masaya paralel tutun, paltar və kart tam kadrda olsun.</li>
         <li>Yaxşı işıq, kölgəsiz. Flaş lazım deyil.</li>
       </ul>
@@ -278,7 +285,7 @@ details[open] summary{margin-bottom:8px}
   <section class="screen" data-step="3" hidden>
     <div class="measgrid">
       <div class="stagecard">
-        <div class="stagebar" id="cardBar" hidden><span id="cardFound"></span><button class="btn" id="findBtn" type="button">Kartı tap</button></div>
+        <div class="stagebar" id="cardBar" hidden><span id="cardFound"></span><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="seg" id="refSeg" role="group" aria-label="Etalon"><button data-r="card" aria-pressed="true">Kart</button><button data-r="a4" aria-pressed="false">A4</button></span><button class="btn" id="rotBtn" type="button" aria-label="Şəkli 90° döndər" title="Şəkli döndər">⟳ Döndər</button><button class="btn" id="findBtn" type="button">Kartı tap</button></span></div>
         <div class="stage" id="stage">
           <canvas id="cv"></canvas>
           <canvas id="loupe" width="264" height="264" hidden></canvas>
@@ -344,12 +351,13 @@ details[open] summary{margin-bottom:8px}
 <div class="cam" id="cam" hidden>
   <video id="camVideo" playsinline muted autoplay></video>
   <div class="camguide" aria-hidden="true"><span>Paltar</span><i>Kart</i></div>
+  <div class="level" id="level" hidden><i id="bubble"></i><b id="levelTxt"></b></div>
   <div class="camtop">
     <button class="cbtn" id="camClose">Bağla</button>
     <button class="cbtn torch" id="torchBtn" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg><span id="torchTxt">Fənər</span></button>
   </div>
   <div class="cambottom">
-    <p id="camHint">Telefonu masaya paralel tutun. Paltar və kart tam kadrda olsun.</p>
+    <p id="camHint">Ortadakı dairə yaşıl olana qədər telefonu düzəldin. Paltar və kart (və ya A4) tam kadrda olsun.</p>
     <button class="shutter" id="shutter" aria-label="Şəkil çək"></button>
   </div>
 </div>
@@ -360,6 +368,10 @@ details[open] summary{margin-bottom:8px}
 const $ = id => document.getElementById(id);
 const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 const CARD_L = 85.6, CARD_S = 53.98; // mm, ISO/IEC 7810 ID-1
+// measuring reference: a bank card (small: scale only) or an A4 sheet (large: also corrects a tilted phone)
+const REFS = { card:{id:'card', L:85.6, S:53.98, name:'Bank kartı', std:'ISO/IEC 7810 ID-1 (85.60x53.98mm)'},
+               a4:{id:'a4', L:297, S:210, name:'A4 vərəq', std:'ISO 216 A4 (297x210mm)'} };
+let REF = REFS.card, captureTilt = null;
 const PAL = {sky:'#38bdf8', amber:'#f59e0b', violet:'#c084fc', rose:'#fb7185', lime:'#a3e635', teal:'#2dd4bf'};
 const pin = (key,label,name,a,b,color,opt={}) => ({key,label,name,a,b,color,...opt});
 const band = (v,t,last) => { for(const [x,l] of t) if(v<x) return l; return last; };
@@ -497,7 +509,7 @@ function makeDemo(m){
 }
 function loadDemo(){
   const d=makeDemo(model);
-  img=d.canvas; iw=img.width; ih=img.height; isDemo=true;
+  img=d.canvas; iw=img.width; ih=img.height; isDemo=true; captureTilt=null; REF=REFS.card; [...$('refSeg').children].forEach(x=>x.setAttribute('aria-pressed', x.dataset.r==='card'));
   card=d.corners.map(p=>({x:p.x+(Math.random()-.5)*1.2, y:p.y+(Math.random()-.5)*1.2}));
   pts=d.pins;
   showThumb(img.toDataURL('image/jpeg',.7));
@@ -510,7 +522,7 @@ function defaultPinsForPhoto(){
   pts={}; model.pins.forEach(p=>pts[p.key]=[P(...p.a),P(...p.b)]);
 }
 function defaultCard(){
-  const cw=iw*.16, ch=cw*CARD_S/CARD_L, cx=iw*.5, cy=ih*.87;
+  const cw=iw*(REF.id==='a4'?.3:.16), ch=cw*REF.S/REF.L, cx=iw*.5, cy=ih*(REF.id==='a4'?.8:.87);
   card=[{x:cx-cw/2,y:cy-ch/2},{x:cx+cw/2,y:cy-ch/2},{x:cx+cw/2,y:cy+ch/2},{x:cx-cw/2,y:cy+ch/2}];
 }
 
@@ -562,7 +574,7 @@ function handleFile(f){
     const MAX=2400, s=Math.min(1, MAX/Math.max(im.naturalWidth||im.width, im.naturalHeight||im.height));
     const c=document.createElement('canvas'); c.width=Math.round((im.naturalWidth||im.width)*s); c.height=Math.round((im.naturalHeight||im.height)*s);
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    img=c; iw=c.width; ih=c.height; isDemo=false;
+    img=c; iw=c.width; ih=c.height; isDemo=false; captureTilt=null;
     defaultCard(); defaultPinsForPhoto();
     showThumb(c.toDataURL('image/jpeg',.7));
     toast('Şəkil hazırdır'); go(3);
@@ -585,7 +597,7 @@ async function openLive(){
   try{
     stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:2560}, height:{ideal:1920}}});
   }catch(err){ camBlocked(err); return; }
-  track=stream.getVideoTracks()[0]; torchOn=false;
+  track=stream.getVideoTracks()[0]; torchOn=false; startLevel();
   const v=$('camVideo'); v.srcObject=stream; $('cam').hidden=false; document.body.style.overflow='hidden';
   try{ await v.play(); }catch(_){}
   // torch capability appears only after the track starts on some phones
@@ -603,7 +615,18 @@ $('torchBtn').onclick=async()=>{
   try{ await track.applyConstraints({advanced:[{torch:!torchOn}]}); torchOn=!torchOn; $('torchBtn').setAttribute('aria-pressed',torchOn); }
   catch(_){ toast('Fənəri yandırmaq alınmadı. Telefonun öz kamerasındakı ⚡ düyməsindən istifadə edin.'); }
 };
+// spirit level: the phone must lie parallel to the floor, or the far side of the garment shrinks
+let tiltNow=null;
+function onOrient(e){ if(e.beta==null||e.gamma==null) return;
+  const t=Math.hypot(e.beta, e.gamma); tiltNow=t; const L=$('level'); L.hidden=false;
+  const k=Math.min(1, t/15), ang=Math.atan2(e.beta,e.gamma);
+  $('bubble').style.transform=`translate(${(-Math.cos(ang)*k*45).toFixed(1)}px,${(-Math.sin(ang)*k*45).toFixed(1)}px)`;
+  const ok=t<=2.5; L.classList.toggle('ok',ok); $('levelTxt').textContent= ok?'Düzdür ✓ çəkin':`${t.toFixed(0)}° maili`; }
+async function startLevel(){ tiltNow=null;
+  try{ if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted') return; } }catch(_){ return; }
+  window.addEventListener('deviceorientation', onOrient); }
 function closeLive(){
+  window.removeEventListener('deviceorientation', onOrient); $('level').hidden=true;
   if(track && torchOn){ try{ track.applyConstraints({advanced:[{torch:false}]}); }catch(_){} }
   if(stream) stream.getTracks().forEach(t=>t.stop());
   stream=null; track=null; torchOn=false; $('camVideo').srcObject=null;
@@ -615,7 +638,8 @@ $('shutter').onclick=()=>{
   const MAX=2400, s=Math.min(1, MAX/Math.max(v.videoWidth,v.videoHeight));
   const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s);
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-  closeLive(); useBitmap(c); toast('Şəkil çəkildi'); go(3);
+  captureTilt=tiltNow; closeLive(); useBitmap(c);
+  toast(captureTilt!=null&&captureTilt>4?`Şəkil ${captureTilt.toFixed(0)}° maili çəkildi. Mümkünsə düz tutub təkrar çəkin.`:'Şəkil çəkildi'); go(3);
 };
 function camBlocked(){
   toast('Bu pəncərədə canlı kameraya icazə yoxdur. "Kamera" düyməsi ilə telefonun öz kamerasını açın və ⚡ ilə işığı yandırın.');
@@ -773,6 +797,46 @@ const CardDetect = (function(){
     return toFull(W,{x:best%W.w+.5, y:((best/W.w)|0)+.5});
   }
   function scoreOf(a){ return a.fill - Math.abs(a.aspect-1.586)*0.6 - (a.opp-1)*0.3; }
+  // final pass on the full-resolution photo: slide each side onto the strongest colour edge
+  // (sub-pixel), drop outliers such as a wood knot touching the card, refit and intersect
+  function snapEdges(src, C){
+    const xs=C.map(p=>p.x), ys=C.map(p=>p.y), pad=14;
+    const x0=Math.max(0,Math.floor(Math.min(...xs)-pad)), y0=Math.max(0,Math.floor(Math.min(...ys)-pad));
+    const x1=Math.min(src.width,Math.ceil(Math.max(...xs)+pad)), y1=Math.min(src.height,Math.ceil(Math.max(...ys)+pad));
+    const w=x1-x0, h=y1-y0; if(w<10||h<10) return C;
+    const c=mk(w,h), g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(src,x0,y0,w,h,0,0,w,h);
+    const d=g.getImageData(0,0,w,h).data;
+    const px=(x,y,ch)=>{ x-=x0+0.5; y-=y0+0.5; if(x<0||y<0||x>=w-1||y>=h-1) return NaN;
+      const xi=Math.floor(x), yi=Math.floor(y), fx=x-xi, fy=y-yi, i=(yi*w+xi)*4+ch;
+      return d[i]*(1-fx)*(1-fy)+d[i+4]*fx*(1-fy)+d[i+w*4]*(1-fx)*fy+d[i+w*4+4]*fx*fy; };
+    const cx=xs.reduce((a,b)=>a+b)/4, cy=ys.reduce((a,b)=>a+b)/4, lines=[];
+    const side=Math.min(...[0,1,2,3].map(i=>Math.hypot(C[(i+1)%4].x-C[i].x,C[(i+1)%4].y-C[i].y)));
+    const R=Math.max(3, Math.min(7, side*0.05));
+    for(let i=0;i<4;i++){
+      const a=C[i], b=C[(i+1)%4], L=Math.hypot(b.x-a.x,b.y-a.y), ux=(b.x-a.x)/L, uy=(b.y-a.y)/L;
+      let nx=-uy, ny=ux; const mx=(a.x+b.x)/2, my=(a.y+b.y)/2; if((mx-cx)*nx+(my-cy)*ny<0){ nx=-nx; ny=-ny; }
+      const P=[];
+      for(let t=0.15;t<=0.851;t+=0.7/Math.max(12,Math.round(L/3))){
+        const bx=a.x+(b.x-a.x)*t, by=a.y+(b.y-a.y)*t; let best=-1, bs=0, prof=[];
+        for(let sx=-R; sx<=R+1e-9; sx+=0.5){ let v=0;
+          for(let ch=0;ch<3;ch++){ const p1=px(bx+(sx+0.5)*nx,by+(sx+0.5)*ny,ch), p0=px(bx+(sx-0.5)*nx,by+(sx-0.5)*ny,ch); v+=Math.abs(p1-p0); }
+          prof.push([sx,v]); if(v>best){best=v;bs=sx;} }
+        if(!(best>12)) continue;
+        // parabolic sub-pixel peak
+        const k=prof.findIndex(q=>q[0]===bs); if(k>0&&k<prof.length-1){ const y0=prof[k-1][1], y1=prof[k][1], y2=prof[k+1][1], den=y0-2*y1+y2; if(den<0) bs+=0.5*0.5*(y0-y2)/den; }
+        P.push({x:bx+bs*nx, y:by+bs*ny});
+      }
+      if(P.length<6) return C;
+      let Lf=fitLine(P);
+      for(let it=0;it<2;it++){ const res=P.map(p=>Math.abs((p.x-Lf.x)*(-Lf.dy)+(p.y-Lf.y)*Lf.dx));
+        const sorted=res.slice().sort((p,q)=>p-q), med=sorted[sorted.length>>1];
+        const keep=P.filter((_,j)=>res[j]<=Math.max(0.8, med*2.5)); if(keep.length<6) break; Lf=fitLine(keep); }
+      lines.push(Lf);
+    }
+    const out=[]; for(let i=0;i<4;i++){ const p=intersect(lines[(i+3)%4], lines[i]); if(!p) return C; out.push(p); }
+    if(out.some((p,i)=>Math.hypot(p.x-C[i].x,p.y-C[i].y)>Math.max(4, side*0.12))) return C;
+    return out;
+  }
   function auto(src){
     const W=sample(src,0,0,src.width,src.height,480), n=W.w*W.h, visited=new Uint8Array(n);
     let best=null;
@@ -789,7 +853,7 @@ const CardDetect = (function(){
     }
     if(!best) return null;
     const coarse=best.a.corners.map(p=>toFull(best.W,p));
-    return refine(src, coarse, best.seed) || coarse;
+    return snapEdges(src, refine(src, coarse, best.seed) || coarse);
   }
   function at(src, pt){
     const W=sample(src,0,0,src.width,src.height,600);
@@ -801,7 +865,7 @@ const CardDetect = (function(){
     }
     if(!best) return null;
     const coarse=best.a.corners.map(p=>toFull(W,p));
-    return refine(src, coarse, best.seed) || coarse;
+    return snapEdges(src, refine(src, coarse, best.seed) || coarse);
   }
   return {auto, at, setFactory:f=>{mk=f;}};
 })();
@@ -944,6 +1008,10 @@ const GarmentAuto = (function(){
     const T=new Int32Array(w).fill(-1), Bt=new Int32Array(w).fill(-1);
     let y0=h,y1=-1,x0=w,x1=-1;
     for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(M[y*w+x]){ if(T[x]<0)T[x]=y; Bt[x]=y; if(y<y0)y0=y; if(y>y1)y1=y; if(x<x0)x0=x; if(x>x1)x1=x; }
+    { const rw=new Float32Array(h); let mx=0;
+      for(let y=0;y<h;y++){ let c=0; for(let x=0;x<w;x++) c+=M[y*w+x]; rw[y]=c; if(c>mx) mx=c; }
+      let a=y0, b=y1; while(a<b && rw[a]<0.12*mx) a++; while(b>a && rw[b]<0.12*mx) b--;
+      if(b-a>0.5*(y1-y0)){ y0=a; y1=b; } }
     const runCache=new Map();
     const runs=y=>{ y=Math.max(0,Math.min(h-1,Math.round(y))); if(runCache.has(y)) return runCache.get(y);
       const r=[]; let a=-1; for(let x=0;x<=w;x++){ const v=x<w&&M[y*w+x]; if(v&&a<0)a=x; if(!v&&a>=0){ r.push([a,x]); a=-1; } } runCache.set(y,r); return r; };
@@ -1085,11 +1153,17 @@ const GarmentAuto = (function(){
     let M=seg.M, ang=0; const c0={x:W.w/2,y:W.h/2};
     const rot=(p,a)=>({x:c0.x+(p.x-c0.x)*Math.cos(a)-(p.y-c0.y)*Math.sin(a), y:c0.y+(p.x-c0.x)*Math.sin(a)+(p.y-c0.y)*Math.cos(a)});
     for(let it=0; it<2; it++){
-      const g0=geometry(M,W.w,W.h), H0=g0.y1-g0.y0; let n=0,sy=0,sx=0,syy=0,syx=0;
-      for(let y=Math.round(g0.y0+0.15*H0); y<=g0.y0+0.9*H0; y++){ const r=g0.runs(y); if(!r.length) continue;
-        const x=(r[0][0]+r[r.length-1][1])/2; n++; sy+=y; sx+=x; syy+=y*y; syx+=y*x; }
-      if(n<10) break; const b=(n*syx-sy*sx)/(n*syy-sy*sy), t=-Math.atan(b);
-      if(Math.abs(t)<0.004 || Math.abs(t)>0.35) break;
+      const g0=geometry(M,W.w,W.h), H0=g0.y1-g0.y0;
+      const rows=[]; for(let y=Math.round(g0.y0+0.15*H0); y<=g0.y0+0.85*H0; y++){ const r=g0.runs(y); if(!r.length) continue;
+        rows.push([y,(r[0][0]+r[r.length-1][1])/2, r[r.length-1][1]-r[0][0]]); }
+      if(rows.length<10) break;
+      const medW=rows.map(r=>r[2]).sort((a,b)=>a-b)[rows.length>>1];
+      const use=rows.filter(r=>r[2]>0.6*medW); if(use.length<10) break;
+      // Theil–Sen style: median of pairwise slopes between rows far apart
+      const sl=[]; for(let i=0;i<use.length;i+=3) for(let j=i+Math.max(3,use.length>>2);j<use.length;j+=3){ const dy=use[j][0]-use[i][0]; if(dy) sl.push((use[j][1]-use[i][1])/dy); }
+      if(sl.length<5) break; sl.sort((a,b)=>a-b);
+      const b=sl[sl.length>>1], t=-Math.atan(b);
+      if(Math.abs(t)<0.004 || Math.abs(t)>0.2) break;
       ang+=t; const R=new Uint8Array(W.w*W.h);
       for(let y=0;y<W.h;y++) for(let x=0;x<W.w;x++){ const q=rot({x,y},ang), xi=Math.round(q.x), yi=Math.round(q.y);
         if(xi>=0&&yi>=0&&xi<W.w&&yi<W.h) R[y*W.w+x]=seg.M[yi*W.w+xi]; }
@@ -1100,6 +1174,14 @@ const GarmentAuto = (function(){
     const back=p=>{ const q=rot(p,ang); return {x:q.x/W.s, y:q.y/W.s}; };
     const pts={}; for(const k in r.pts) pts[k]=r.pts[k].map(back);
     const cut=seg.touch>0.03;
+    { const L=(k)=>r.pts[k]?Math.hypot(r.pts[k][1].x-r.pts[k][0].x, r.pts[k][1].y-r.pts[k][0].y)/ppc:null;
+      const ch=L('chest'), wa=L('waist'), hp=L('hip'), le=L('length'), sh=L('shoulder');
+      const bad=k=>{ if(k in r.conf) r.conf[k]=false; };
+      for(const k in r.pts){ const v=L(k); if(v!==null && (v<8 || v>160)) bad(k); }
+      if(ch&&wa&&(wa/ch<0.7||wa/ch>1.35)){ bad('chest'); bad('waist'); }
+      if(ch&&sh&&(sh>ch*1.15)) bad('shoulder');
+      if(ch&&le&&(le<ch*0.8)) bad('length');
+      if(hp&&wa&&(hp<wa*0.85)) { bad('hip'); bad('waist'); } }
     const conf={}; for(const k in r.conf) conf[k]=r.conf[k] && !cut;
     return {ok:true, pts, conf, cut};
   }
@@ -1135,6 +1217,20 @@ function measureBarUpdate(){
   el.innerHTML = nCheck ? `<b style="color:var(--warn)">${nCheck} nöqtəni yoxlayın</b> · sarı haşiyəli nöqtələri tikiş kənarına çəkin`
     : `<b style="color:var(--accent)">✓ ${all-nCheck}/${all} nöqtə hazırdır</b>${nAuto?' · avtomatik qoyulub':''}`;
 }
+$('refSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; REF=REFS[b.dataset.r];
+  [...$('refSeg').children].forEach(x=>x.setAttribute('aria-pressed', x===b)); $('refSeg').hidden=false;
+  toast(REF.id==='a4'?'Etalon: A4 vərəq (29.7 × 21 sm). Telefon əyriliyi də düzəldilir.':'Etalon: bank kartı (8.56 × 5.4 sm)');
+  autoImg=null; if(step===3 && img && detectedFor===img && !targets) runDetect(null); draw(); });
+// garments must stand upright (collar / waistband at the top) for automatic points
+$('rotBtn').onclick=()=>{ if(!img) return;
+  const c=document.createElement('canvas'); c.width=ih; c.height=iw; const g=c.getContext('2d');
+  g.translate(ih,0); g.rotate(Math.PI/2); g.drawImage(img,0,0);
+  const H0=ih, R=p=>({x:H0-p.y, y:p.x});
+  card=card.map(R); if(targets) targets=targets.map(R); for(const k in pts) pts[k]=pts[k].map(R);
+  const wasDetected=detectedFor===img;
+  img=c; iw=c.width; ih=c.height; if(wasDetected) detectedFor=img; autoImg=null; pinConf={};
+  showThumb(c.toDataURL('image/jpeg',.7)); layout();
+  if(step===4) runAuto(false); };
 $('findBtn').onclick=()=>{ if(!img) return; if(step===4){ runAuto(true); return; } if(tapMode){ tapMode=false; cardBarUpdate(); return; } runDetect(null); };
 
 /* ---------- Homography: image px -> card plane mm ---------- */
@@ -1164,12 +1260,20 @@ function convex(q){ let sign=0;
   return true; }
 function calibrate(){
   const s01=dist(card[0],card[1]), s12=dist(card[1],card[2]), s23=dist(card[2],card[3]), s30=dist(card[3],card[0]);
-  const land=(s01+s23)>=(s12+s30), W=land?CARD_L:CARD_S, H=land?CARD_S:CARD_L;
-  const h=convex(card)?homography(card,[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}]):null;
+  const land=(s01+s23)>=(s12+s30), W=land?REF.L:REF.S, H=land?REF.S:REF.L;
+  const dst=[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}];
+  const h=convex(card)?homography(card,dst):null;
+  // a card is only a few cm wide: its perspective can't be trusted over a whole garment, so use a
+  // least-squares affine fit (scale, rotation, shear). A4 is big enough for full perspective correction.
+  let aff=null;
+  if(h){ const A=[[0,0,0],[0,0,0],[0,0,0]], bx=[0,0,0], by=[0,0,0];
+    card.forEach((p,i)=>{ const v=[p.x,p.y,1]; for(let r=0;r<3;r++){ for(let c=0;c<3;c++) A[r][c]+=v[r]*v[c]; bx[r]+=v[r]*dst[i].x; by[r]+=v[r]*dst[i].y; } });
+    const ax=solve(A.map(r=>r.slice()),bx.slice()), ay=solve(A.map(r=>r.slice()),by.slice()); if(ax&&ay) aff={ax,ay}; }
   const longPx=land?(s01+s23)/2:(s12+s30)/2;
-  return {h, ok:!!h, longPx, persp:Math.max(s01/s23,s23/s01,s12/s30,s30/s12), pxPerCm:longPx/(CARD_L/10)};
+  return {h, aff, persp3d:REF.id==='a4', ok:!!h&&!!aff, longPx, persp:Math.max(s01/s23,s23/s01,s12/s30,s30/s12), pxPerCm:longPx/(REF.L/10)};
 }
-function measure(cal){ const o={}; model.pins.forEach(p=>{ const [a,b]=pts[p.key]; o[p.key]=cal.ok?dist(applyH(cal.h,a),applyH(cal.h,b))/10:NaN; }); return o; }
+function toMM(cal,p){ return cal.persp3d ? applyH(cal.h,p) : {x:cal.aff.ax[0]*p.x+cal.aff.ax[1]*p.y+cal.aff.ax[2], y:cal.aff.ay[0]*p.x+cal.aff.ay[1]*p.y+cal.aff.ay[2]}; }
+function measure(cal){ const o={}; model.pins.forEach(p=>{ const [a,b]=pts[p.key]; o[p.key]=cal.ok?dist(toMM(cal,a),toMM(cal,b))/10:NaN; }); return o; }
 function errCm(L,cal){ const e=Math.max(1,.8/k); return Math.hypot(L*(2*e)/cal.longPx, Math.SQRT2*e/cal.pxPerCm)+.2; }
 
 /* ---------- Stage drawing ---------- */
@@ -1204,7 +1308,7 @@ function draw(){
   const q=card.map(V), c0={x:q.reduce((s,p)=>s+p.x,0)/4, y:q.reduce((s,p)=>s+p.y,0)/4};
   const inner=q.map(p=>({x:c0.x+(p.x-c0.x)*.72, y:c0.y+(p.y-c0.y)*.62}));
   ctx.beginPath(); inner.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
-  ctx.fillStyle='rgba(16,24,19,.92)'; ctx.fill();
+  ctx.fillStyle=REF.id==='card'?'rgba(16,24,19,.92)':'rgba(16,24,19,0)'; ctx.fill();
   ctx.beginPath(); q.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
   const allOn=!targets||card.every(c=>onTarget(c));
   ctx.strokeStyle=!cal.ok?'#f87171':allOn?'#34d399':'#fbbf24'; ctx.lineWidth=cardMode?2:1.5; ctx.setLineDash(cardMode?[]:[4,4]); ctx.stroke(); ctx.setLineDash([]);
@@ -1250,9 +1354,10 @@ function updateStatus(cal){
   let lv='ok', msg;
   if(!cal.ok){ lv='bad'; msg='Kartın küncləri səhv sırada və ya üst-üstədir. 4 küncü kartın künclərinə saat əqrəbi istiqamətində qoyun.'; }
   else if(cal.longPx<110){ lv='bad'; msg=`Kart şəkildə çox kiçikdir (${Math.round(cal.longPx)} px). Daha yaxından çəkin.`; }
-  else if(cal.persp>1.25){ lv='warn'; msg='Telefon xeyli maili tutulub. Perspektiv düzəldilir, amma dəqiqlik üçün masaya paralel çəkin.'; }
+  else if(captureTilt!=null && captureTilt>4 && REF.id==='card'){ lv='warn'; msg=`Şəkil ${captureTilt.toFixed(0)}° maili çəkilib: ölçülər ~${Math.round(captureTilt*1.2)}% fərqli ola bilər. Telefonu düz tutub yenidən çəkin və ya A4 vərəqdən istifadə edin.`; }
+  else if(cal.persp>1.25){ lv='warn'; msg='Telefon xeyli maili tutulub. Dəqiqlik üçün masaya paralel çəkin.'; }
   else if(cal.longPx<180){ lv='warn'; msg='Kart bir az kiçikdir. Telefonu yaxınlaşdırsanız dəqiqlik artar.'; }
-  else msg='Kalibrasiya yaxşıdır. Perspektiv avtomatik düzəldilir.';
+  else msg = REF.id==='a4' ? 'A4 etalonu: miqyas və telefonun əyriliyi düzəldilir.' : 'Kart etalonu: miqyas hesablandı. Telefon tam düz tutulubsa, xəta ±1–2% olur.';
   $('status').className='status'+(lv==='ok'?'':' '+lv); $('statusTxt').textContent=msg;
 }
 const bonus=()=>stretch==='high'?4:stretch==='low'?2:0;
@@ -1303,7 +1408,7 @@ function payload(){
   const sz=cal.ok?model.size(m):null;
   const o={ module:'cinarmall_digital_olcu', version:4, mode, category:model.id, created_at:new Date().toISOString(),
     point_source:Object.fromEntries(model.pins.map(p=>[p.key, pinConf[p.key]==='ok'?'auto':pinConf[p.key]==='check'?'auto_unconfirmed':'manual'])),
-    calibration:{ reference:'ISO/IEC 7810 ID-1 (85.60x53.98mm)', method:'4-point homography', card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
+    calibration:{ reference:REF.std, method:REF.id==='a4'?'4-point homography':'4-point affine', capture_tilt_deg:captureTilt, card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
     detected_size:sz?{label:sz.label, extra:sz.extra||null, basis:sz.note}:null, fabric_stretch:stretch, measurements_cm:cal.ok?meas:null };
   if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null; } else o.note=$('note').value.trim()||null;
   return o;
