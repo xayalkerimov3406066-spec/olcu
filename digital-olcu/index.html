@@ -163,6 +163,11 @@ details[open] summary{margin-bottom:8px}
 .dots i.on{background:var(--accent);width:18px;border-radius:4px}
 .dots span{font-size:11px;color:var(--muted);white-space:nowrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:30;max-width:90vw;text-align:center}
+.labelcheck{border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;font-size:14px;background:var(--sunk);border:1px solid var(--line)}
+.labelcheck b{font-size:15px}
+.labelcheck.ok{background:var(--accent-soft);border-color:transparent}
+.labelcheck.warn{background:var(--warn-bg);border-color:transparent}
+.labelcheck .lc-rows{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
 /* live camera */
 .level{position:absolute;left:50%;top:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,255,255,.7);pointer-events:none}
 .level::before{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px dashed rgba(255,255,255,.8)}
@@ -322,10 +327,17 @@ details[open] summary{margin-bottom:8px}
       </div>
       <div class="two" id="sellerFields">
         <div class="field"><label class="lbl" for="sku" style="margin:0">Məhsul kodu (SKU)</label><input id="sku" placeholder="CM-10234"></div>
-        <div class="field"><label class="lbl" for="tag" style="margin:0">Etiketdəki ölçü</label><input id="tag" placeholder="L"></div>
+        <div class="field"><label class="lbl" for="tag" style="margin:0">Etiketdəki ölçü</label><input id="tag" placeholder="38, L, W32"></div>
+        <div class="field"><label class="lbl" for="elast" style="margin:0">Elastan / spandeks, %</label><input id="elast" inputmode="decimal" placeholder="Məs. 15 (etiketdən)"></div>
       </div>
+      <div class="labelcheck" id="labelCheck" hidden></div>
       <div class="field" id="buyerFields" hidden><label class="lbl" for="note" style="margin:0">Qeyd</label><input id="note" placeholder="Ən yaxşı oturan şalvarım"></div>
       <button class="btn primary" id="saveBtn">Ölçüləri yadda saxla</button>
+    </div>
+    <div class="box stack" id="listingBox">
+      <div class="sizehead"><h2>Məhsul kartı üçün mətn</h2><button class="btn" id="copyListing" type="button">Kopyala</button></div>
+      <pre id="listing" style="white-space:pre-wrap;max-height:none"></pre>
+      <p class="note" style="margin:0">Bu mətni Cinarmall-da məhsulun "Ölçü" bölməsinə yapışdırın. Alıcı real santimetrləri görür, ölçüyə görə qaytarma azalır.</p>
     </div>
     <div class="box">
       <h2 style="margin-bottom:10px">Saxlanmış ölçülər</h2>
@@ -1493,6 +1505,80 @@ const endDrag=()=>{ if(!drag) return;
   drag=null; loupe.hidden=true; draw(); };
 cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
 
+/* ---------- Label vs real size ---------- */
+const LETTERS=['XXS','XS','S','M','L','XL','2XL','3XL','4XL','5XL'];
+const normLetter=t=>{ t=t.toUpperCase().replace(/\s+/g,'');
+  const map={XXL:'2XL',XXXL:'3XL',XXXXL:'4XL','2X':'2XL','3X':'3XL'}; t=map[t]||t; return LETTERS.indexOf(t); };
+const PANTS={pants:1,shorts:1};
+// which measurement the label size refers to, as a full circumference
+function keyMeasure(m){
+  if(PANTS[model.id]||model.id==='skirt') return {key:'waist', name:'bel', cm:m.waist*2};
+  return {key:'chest', name:'sinə', cm:m.chest*2};
+}
+function labelCheck(m){
+  const raw=($('tag').value||'').trim(); if(!raw) return null;
+  const km=keyMeasure(m); if(!isFinite(km.cm)) return null;
+  const real=km.cm, max=km.cm+bonus(), sz=model.size(m);
+  const li=normLetter(raw);
+  if(li>=0){
+    const di=LETTERS.indexOf(sz.label), diff=li-di;
+    // stretch can take the garment one size up
+    const tol = bonus()>=4 ? 2 : bonus()>=2 ? 1 : 0;   // a stretchy fabric sits one or two sizes up
+    const ok = diff===0 || (diff>0 && diff<=tol);
+    const msg = diff===0 ? `Etiket (${raw.toUpperCase()}) real ölçü ilə uyğundur.`
+      : ok ? `Real ölçü ${sz.label} kimidir, parça dartıldığı üçün ${raw.toUpperCase()} kimi oturur. Dar (slim) kəsimdir.`
+      : diff>0 ? `Etiketdə ${raw.toUpperCase()}, real ölçü ${sz.label} kimidir: ${diff} ölçü dar oturacaq.`
+      : `Etiketdə ${raw.toUpperCase()}, real ölçü ${sz.label} kimidir: ${-diff} ölçü geniş oturacaq.`;
+    return {status:ok?'ok':'warn', label:raw, kind:'letter', real_size:sz.label, steps:diff, measured_cm:+real.toFixed(1), message:msg};
+  }
+  const num=parseFloat(raw.replace(/^W/i,'').replace(',','.')); if(!isFinite(num)) return null;
+  let expect=null, unit='';
+  if(PANTS[model.id] && num>=24 && num<=50){ expect=num*2.54; unit='W'; }                // waist in inches
+  else if(model.id==='skirt' && num>=32 && num<=54){ expect=70+(num-36)*3; unit='EU'; }  // EU women, waist
+  else if(model.id==='dress' && num>=32 && num<=54){ expect=88+(num-38)*2; unit='EU'; }  // EU women, bust
+  else if(num>=42 && num<=66){ expect=num*2; unit='EU'; }                                // EU men, chest
+  if(expect===null) return null;
+  const fmtW=v=>unit==='W'?`W${Math.round(v/2.54)}`:`${Math.round(v)} sm`;
+  let status='ok', msg;
+  if(expect>max+3){ status='warn'; msg=`Etiketdə ${raw}, amma real ${km.name} ${real.toFixed(0)} sm (${fmtW(real)})${bonus()?`, dartılanda ~${max.toFixed(0)} sm`:''}. Etiket böyük göstərir: alıcıya dar gələcək.`; }
+  else if(expect<real-3){ status='warn'; msg=`Etiketdə ${raw}, amma real ${km.name} ${real.toFixed(0)} sm (${fmtW(real)}). Etiket kiçik göstərir: alıcıya geniş gələcək.`; }
+  else msg = bonus() && expect>real+1.5
+      ? `Real ${km.name} ${real.toFixed(0)} sm (${fmtW(real)}), parça dartılır: ${raw} kimi oturur. Etiket düzgündür.`
+      : `Etiket (${raw}) real ölçü ilə uyğundur: ${km.name} ${real.toFixed(0)} sm.`;
+  return {status, label:raw, kind:unit, label_cm:+expect.toFixed(1), measured_cm:+real.toFixed(1), measured_max_cm:+max.toFixed(1), diff_cm:+(expect-max).toFixed(1), message:msg};
+}
+function renderLabelCheck(m){
+  const box=$('labelCheck'), r=mode==='seller'?labelCheck(m):null;
+  if(!r){ box.hidden=true; return r; }
+  box.hidden=false; box.className='labelcheck '+r.status; box.innerHTML='';
+  const b=document.createElement('b'); b.textContent=(r.status==='ok'?'✓ ':'⚠ ')+'Etiket yoxlaması'; box.appendChild(b);
+  const p=document.createElement('span'); p.textContent=r.message; box.appendChild(p);
+  if(r.label_cm){ const g=document.createElement('div'); g.className='lc-rows';
+    [['Etiketə görə',`${r.label_cm.toFixed(0)} sm`],['Real (düz)',`${r.measured_cm.toFixed(0)} sm`],['Dartılanda',`${r.measured_max_cm.toFixed(0)} sm`]].forEach(([a,c])=>{ const x=document.createElement('span'); x.textContent=a; const y=document.createElement('span'); y.textContent=c; g.append(x,y); });
+    box.appendChild(g); }
+  return r;
+}
+// elastane percentage on the label decides the stretch allowance
+function setStretch(v){ stretch=v; [...$('chips').children].forEach(x=>x.setAttribute('aria-pressed', x.dataset.s===v)); }
+$('elast').addEventListener('input',()=>{ const v=parseFloat(($('elast').value||'').replace(',','.'));
+  if(isFinite(v)) setStretch(v<=0?'none':v<5?'low':'high'); if(step===5) renderResult(); });
+
+function listingText(m, lc){
+  const cal=calibrate(), sz=model.size(m), L=[];
+  L.push(`📏 Real ölçülər (düz sərilmiş məhsul, sm):`);
+  model.pins.forEach(p=>{ const v=m[p.key]; if(!isFinite(v)) return;
+    L.push(p.half ? `• ${p.name}: ${v.toFixed(0)} sm (çevrə ~${(v*2).toFixed(0)} sm)` : `• ${p.name}: ${v.toFixed(0)} sm`); });
+  const el=parseFloat(($('elast').value||'').replace(',','.'));
+  if(isFinite(el)&&el>0) L.push(`• Parça: ${el}% elastan, ${el>=5?'yaxşı dartılır':'az dartılır'}`);
+  L.push(`👕 Təxmini ölçü: ${sz.label}${sz.extra?` (${sz.extra})`:''}`);
+  if(lc) L.push(`🏷 ${lc.message}`);
+  L.push(`✅ Ölçülər Cinarmall Digital ölçü ilə ölçülüb (±1–2 sm). Qapıda yoxla, sonra ödə.`);
+  return L.join('\n');
+}
+$('copyListing').onclick=async()=>{ const t=$('listing').textContent;
+  try{ await navigator.clipboard.writeText(t); toast('Mətn kopyalandı'); }
+  catch(_){ const r=document.createRange(); r.selectNodeContents($('listing')); const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); toast('Mətn seçildi, əl ilə kopyalayın'); } };
+
 /* ---------- Results ---------- */
 function payload(){
   const cal=calibrate(), m=measure(cal), r=v=>+v.toFixed(1), meas={};
@@ -1502,7 +1588,8 @@ function payload(){
     point_source:Object.fromEntries(model.pins.map(p=>[p.key, pinConf[p.key]==='ok'?'auto':pinConf[p.key]==='check'?'auto_unconfirmed':'manual'])),
     calibration:{ reference:REF.std, method:REF.id==='a4'?'4-point homography':'4-point affine', capture_tilt_deg:captureTilt, card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
     detected_size:sz?{label:sz.label, extra:sz.extra||null, basis:sz.note}:null, fabric_stretch:stretch, measurements_cm:cal.ok?meas:null };
-  if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null; } else o.note=$('note').value.trim()||null;
+  if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null;
+    const el=parseFloat(($('elast').value||'').replace(',','.')); o.elastane_pct=isFinite(el)?el:null; o.label_check=cal.ok?labelCheck(m):null; } else o.note=$('note').value.trim()||null;
   return o;
 }
 function renderResult(){
@@ -1512,10 +1599,12 @@ function renderResult(){
   $('sizeBig').innerHTML=''; $('sizeBig').append(sz.label);
   if(sz.extra){ const s=document.createElement('small'); s.textContent=sz.extra; $('sizeBig').appendChild(s); }
   renderRows($('resRows'),cal,m);
+  const lc=renderLabelCheck(m);
+  $('listingBox').hidden = mode!=='seller'; $('listing').textContent=listingText(m, lc);
   $('json').textContent=JSON.stringify(payload(),null,2);
 }
 $('chips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; stretch=b.dataset.s; [...$('chips').children].forEach(x=>x.setAttribute('aria-pressed',x===b)); renderResult(); });
-['sku','tag','note'].forEach(id=>$(id).addEventListener('input',()=>{ if(step===5) $('json').textContent=JSON.stringify(payload(),null,2); }));
+['sku','tag','note'].forEach(id=>$(id).addEventListener('input',()=>{ if(step===5) renderResult(); }));
 $('copyBtn').onclick=async()=>{ const t=$('json').textContent;
   try{ await navigator.clipboard.writeText(t); toast('JSON kopyalandı'); }
   catch(_){ const r=document.createRange(); r.selectNodeContents($('json')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast('Mətn seçildi, əl ilə kopyalayın'); } };
