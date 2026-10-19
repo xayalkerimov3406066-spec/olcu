@@ -871,7 +871,82 @@ const CardDetect = (function(){
     return out;
   }
   // small cards (phone held high) need a finer first look: try a quick pass, then a detailed one
-  function auto(src){ return autoAt(src,480) || autoAt(src,840); }
+  // cards with a printed design (two colours, a stripe across) break up a colour flood; find them
+  // instead as compact blobs that differ from the floor, then fit their outline
+  function kmeans(S,K){
+    let C=[S[0]]; while(C.length<K){ let bi=0,bd=-1; for(let i=0;i<S.length;i+=3){ let m=Infinity; for(const c of C){ const d=(S[i][0]-c[0])**2+(S[i][1]-c[1])**2+(S[i][2]-c[2])**2; if(d<m) m=d; } if(m>bd){bd=m;bi=i;} } C.push(S[bi]); }
+    let cnt=[]; for(let it=0;it<8;it++){ const acc=C.map(()=>[0,0,0]); cnt=C.map(()=>0);
+      for(const p of S){ let bi=0,bd=Infinity; C.forEach((c,k)=>{ const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2; if(d<bd){bd=d;bi=k;} }); acc[bi][0]+=p[0]; acc[bi][1]+=p[1]; acc[bi][2]+=p[2]; cnt[bi]++; }
+      C=C.map((c,k)=>cnt[k]?[acc[k][0]/cnt[k],acc[k][1]/cnt[k],acc[k][2]/cnt[k]]:c); }
+    return C.filter((_,k)=>cnt[k]>=0.02*S.length);
+  }
+  function blobCards(src){
+    const W=sample(src,0,0,src.width,src.height,640), {w,h,R,G,B}=W;
+    const band=Math.max(2,Math.round(Math.min(w,h)*0.03)), S=[];
+    for(let y=0;y<h;y+=2) for(let x=0;x<w;x+=2){ if(x>=band&&x<w-band&&y>=band&&y<h-band) continue; const i=y*w+x; S.push([R[i],G[i],B[i]]); }
+    return blobSearch(src, W, kmeans(S,10), null);
+  }
+  // tapped on a card: learn the floor (and garment) colours from a ring around the tap, then fit the blob
+  function blobAt(src, pt){
+    const W=sample(src,0,0,src.width,src.height,640), {w,h,R,G,B}=W, cx=pt.x*W.s, cy=pt.y*W.s;
+    for(const f of [0.09,0.13,0.18]){
+      const r=Math.min(w,h)*f, S=[];
+      for(let k=0;k<360;k+=2){ const a=k*Math.PI/180; for(const rr of [r, r*1.15]){ const x=Math.round(cx+rr*Math.cos(a)), y=Math.round(cy+rr*Math.sin(a)); if(x<0||y<0||x>=w||y>=h) continue; const i=y*w+x; S.push([R[i],G[i],B[i]]); } }
+      if(S.length<50) continue;
+      const res=blobSearch(src, W, kmeans(S,6), {cx,cy,r:r*0.95});
+      if(res) return res; }
+    return null;
+  }
+  function blobSearch(src, W, bg, win){
+    const {w,h,R,G,B}=W, n=w*h;
+    const M=new Uint8Array(n);
+    for(let i=0;i<n;i++){ if(win){ const x=i%w, y=(i/w)|0; if((x-win.cx)**2+(y-win.cy)**2>win.r*win.r) continue; }
+      let m=Infinity; for(const c of bg){ const d=(R[i]-c[0])**2+(G[i]-c[1])**2+(B[i]-c[2])**2; if(d<m) m=d; } M[i]=m>45*45?1:0; }
+    // a 1-px erosion separates a card that just touches the garment
+    const E=new Uint8Array(n); for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=y*w+x; E[i]=M[i]&&M[i-1]&&M[i+1]&&M[i-w]&&M[i+w]?1:0; }
+    const lab=new Int32Array(n), q=new Int32Array(n); let L=0, best=null;
+    for(let s0=0;s0<n;s0++){ if(!E[s0]||lab[s0]) continue; L++; let hd=0,tl=0; q[tl++]=s0; lab[s0]=L;
+      let x0=w,x1=0,y0=h,y1=0;
+      while(hd<tl){ const i=q[hd++], x=i%w, y=(i/w)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+        for(const j of [x>0?i-1:-1, x<w-1?i+1:-1, i-w, i+w]) if(j>=0&&j<n&&E[j]&&!lab[j]){ lab[j]=L; q[tl++]=j; } }
+      if(tl<0.0006*n || tl>0.04*n) continue;
+      if(win && !(win.cx>=x0-2&&win.cx<=x1+2&&win.cy>=y0-2&&win.cy<=y1+2)) continue;
+      // region = component grown back by the erosion, holes filled inside its box
+      const mask=new Uint8Array(n); let area=0;
+      for(let y=Math.max(0,y0-2); y<=Math.min(h-1,y1+2); y++){ let a=-1,b=-1;
+        for(let x=Math.max(0,x0-2); x<=Math.min(w-1,x1+2); x++){ const i=y*w+x; const on=lab[i]===L||(M[i]&&((x>0&&lab[i-1]===L)||(x<w-1&&lab[i+1]===L)||(lab[i-w]===L)||(lab[i+w]===L))); if(on){ if(a<0)a=x; b=x; } }
+        if(a>=0) for(let x=a;x<=b;x++){ mask[y*w+x]=1; area++; } }
+      const a=analyse({mask,area},W); if(!a||!a.valid) continue;
+      a.contrast=contrast(W,a.corners); if(a.contrast<22) continue;
+      // printed parts (white logo in a corner) can bite into the blob: rebuild each side as the
+      // outermost support line, parallel to the averaged direction of the side and its opposite
+      { const q=a.corners, cx=q.reduce((t,p)=>t+p.x,0)/4, cy=q.reduce((t,p)=>t+p.y,0)/4;
+        const dir=i=>{ const u={x:q[(i+1)%4].x-q[i].x, y:q[(i+1)%4].y-q[i].y}, l=Math.hypot(u.x,u.y); return {x:u.x/l,y:u.y/l}; };
+        const avg=(u,v)=>{ const x=u.x-v.x, y=u.y-v.y, l=Math.hypot(x,y); return {x:x/l,y:y/l}; };
+        const D=[avg(dir(0),dir(2)), avg(dir(1),dir(3))];
+        const pts=[]; for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; if(mask[i] && (!mask[i-1]||!mask[i+1]||!mask[i-w]||!mask[i+w])) pts.push({x:x+0.5,y:y+0.5}); }
+        const lines=[];
+        for(let i=0;i<4;i++){ const d=D[i%2]; let nx=-d.y, ny=d.x; const m={x:(q[i].x+q[(i+1)%4].x)/2, y:(q[i].y+q[(i+1)%4].y)/2};
+          if((m.x-cx)*nx+(m.y-cy)*ny<0){ nx=-nx; ny=-ny; }
+          const pr=pts.map(p=>(p.x-cx)*nx+(p.y-cy)*ny).sort((u,v)=>u-v); const off=pr[Math.floor(pr.length*0.995)];
+          lines.push({x:cx+nx*off, y:cy+ny*off, dx:d.x, dy:d.y}); }
+        const c2=[]; for(let i=0;i<4;i++){ const pt=intersect(lines[(i+3)%4], lines[i]); if(pt) c2.push(pt); }
+        if(c2.length===4){ const sd=[0,1,2,3].map(i=>Math.hypot(c2[(i+1)%4].x-c2[i].x,c2[(i+1)%4].y-c2[i].y));
+          const asp=Math.max((sd[0]+sd[2])/(sd[1]+sd[3]),(sd[1]+sd[3])/(sd[0]+sd[2])); if(asp>1.4&&asp<1.8) a.corners=c2; } }
+      const sc=scoreOf(a); if(!best||sc>best.sc) best={sc,a};
+    }
+    if(!best) return null;
+    const c=snapEdges(src, best.a.corners.map(p=>toFull(W,p)));
+    // a card is a parallelogram in the photo: a side shortened by a bitten corner is extended to match its opposite
+    const len=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y);
+    for(const [i,j] of [[0,2],[1,3]]){ // side i: c[i]->c[i+1], side j: c[j]->c[j+1]
+      const li=len(c[i],c[(i+1)%4]), lj=len(c[j],c[(j+1)%4]); if(Math.abs(li-lj)/Math.max(li,lj)<0.03) continue;
+      // the shorter of the two sides adjacent to the gap is lengthened from its reliable end
+      if(li<lj){ const a=c[(i+1)%4], b=c[i]; const k=lj/li; c[(i+1)%4]={x:b.x+(a.x-b.x)*k, y:b.y+(a.y-b.y)*k}; }
+      else { const a=c[j], b=c[(j+1)%4]; const k=li/lj; c[j]={x:b.x+(a.x-b.x)*k, y:b.y+(a.y-b.y)*k}; } }
+    return c;
+  }
+  function auto(src){ return autoAt(src,480) || autoAt(src,840) || blobCards(src); }
   function autoAt(src, side){
     const W=sample(src,0,0,src.width,src.height,side), n=W.w*W.h, visited=new Uint8Array(n);
     let best=null;
@@ -902,7 +977,7 @@ const CardDetect = (function(){
       const r=flood(W,y*W.w+x,{...p,maxArea:0.3}); if(!r) continue;
       const a=analyse(r,W); if(a&&a.valid){ const sc=scoreOf(a); if(!best||sc>best.sc) best={sc,a,seed:seedInside(r,W,a.corners)}; }
     }
-    if(!best) return null;
+    if(!best) return blobAt(src, pt);
     const coarse=best.a.corners.map(p=>toFull(W,p));
     return snapEdges(src, refine(src, coarse, best.seed) || coarse);
   }
