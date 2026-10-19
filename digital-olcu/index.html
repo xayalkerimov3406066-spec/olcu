@@ -858,8 +858,10 @@ const CardDetect = (function(){
     if(out.some((p,i)=>Math.hypot(p.x-C[i].x,p.y-C[i].y)>Math.max(4, side*0.12))) return C;
     return out;
   }
-  function auto(src){
-    const W=sample(src,0,0,src.width,src.height,480), n=W.w*W.h, visited=new Uint8Array(n);
+  // small cards (phone held high) need a finer first look: try a quick pass, then a detailed one
+  function auto(src){ return autoAt(src,480) || autoAt(src,840); }
+  function autoAt(src, side){
+    const W=sample(src,0,0,src.width,src.height,side), n=W.w*W.h, visited=new Uint8Array(n);
     let best=null;
     const step=Math.max(4, Math.round(Math.min(W.w,W.h)/40));
     for(const p of PARAMS){
@@ -1087,22 +1089,51 @@ const GarmentAuto = (function(){
       if(hist.length>=5){ const loc=median(hist.slice(-10));
         if(v>loc*1.16 && maxY!==null){ ya=y+1; break; }
         const step=Math.round(ppc), wb=width(y+step); if(wb && v-wb>1.5*ppc){ ya=y+step; break; }
-        if(wb && wb-v>1.5*ppc && y<g.y0+0.6*H){ ya=y+step; break; }
+        const wb2=width(y+2*step); if(wb && wb2 && wb2-v>2.2*ppc && wb-v>0.6*ppc && y<g.y0+0.6*H){ ya=y+step; break; }
         if(maxY!==null && maxW>minW*1.02 && v<maxW*0.965){ ya=maxY; break; } }
       const rose=maxW>minW*1.02;
       if(v<minW && !rose){ minW=v; maxW=v; maxY=y; } else if(v>maxW){ maxW=v; maxY=y; }
       hist.push(v);
     }
     let armOK=ya!==null; if(!armOK) ya=Math.round(g.y0+0.3*H);
+    // sleeves hanging beside the body (jackets, long sleeves laid down): the body's own sides are only
+    // visible where the sleeves leave a gap; fit straight lines through them and use those instead
+    let hang=null;
+    if(cat==='shirt'||cat==='jacket'){
+      const rows=[];
+      for(let y=Math.round(g.y0+0.3*H); y<=g.y0+0.95*H; y++){ const r=g.runs(y).filter(s=>s[1]-s[0]>=0.8*ppc);
+        if(r.length<3) continue; const k=r.findIndex(s=>s[0]<=cx&&cx<s[1]); if(k<=0||k>=r.length-1) continue;
+        rows.push([y, r[k][0], r[k][1], r[k-1][1], r[k+1][0]]); }
+      if(rows.length>=Math.max(8, 0.08*H)){
+        const fitL=(col)=>{ const sl=[]; for(let i=0;i<rows.length;i+=2) for(let j=i+6;j<rows.length;j+=2){ const dy=rows[j][0]-rows[i][0]; if(dy) sl.push((rows[j][col]-rows[i][col])/dy); }
+          if(!sl.length) return null; sl.sort((a,b)=>a-b); const b=sl[sl.length>>1]; const as=rows.map(r=>r[col]-b*r[0]).sort((a,b)=>a-b); return {a:as[as.length>>1], b}; };
+        const Lf=fitL(1), Rf=fitL(2), gapTop=rows[0][0];
+        // how fast the sleeve moves away from the body going down: a splayed sleeve leaves quickly,
+        // a sleeve lying alongside the body stays parallel (then the armpit is hidden higher up)
+        const near=rows.filter(r=>r[0]<=gapTop+10*ppc); let parallel=false;
+        if(near.length>=6){ const a=near[0], b=near[near.length-1], dy=b[0]-a[0];
+          const gr=dy>0 ? (((b[4]-b[2])-(a[4]-a[2])) + ((b[1]-b[3])-(a[1]-a[3])))/(2*dy) : 1; parallel = gr<0.2; }
+        if(Lf&&Rf) hang={Lf,Rf,gapTop,rows,parallel}; } }
+    if(hang){
+      // armpit: where the sleeve seam meets the body, about a third of the way down, never below the gap
+      if(!armOK || ya>hang.gapTop+2*ppc || ya<g.y0+0.2*H || (hang.parallel && ya>hang.gapTop-4*ppc)){ ya=Math.round(Math.min(hang.gapTop, g.y0+(cat==='jacket'?0.4:0.33)*H)); armOK=false; } }
     let yChest=Math.min(g.y1, ya+Math.round(1.0*ppc));
     for(let k=0;k<3*ppc && yChest+2*ppc<g.y1;k++){ if(width(yChest)>1.06*width(yChest+2*ppc)) yChest++; else break; }
-    const sc=runAt(g,yChest,cx), Wc=sc?sc[1]-sc[0]:H*0.6;
+    let sc=runAt(g,yChest,cx);
+    if(hang && !armOK){ // body sides right below the hidden armpit: median of the highest visible rows
+      const top=hang.rows.slice(0, Math.max(5, Math.round(hang.rows.length*0.15)));
+      const med=a=>{ const t=a.slice().sort((p,q)=>p-q); return t[t.length>>1]; };
+      sc=[med(top.map(r=>r[1])), med(top.map(r=>r[2]))]; }
+    const Wc=sc?sc[1]-sc[0]:H*0.6;
     if(sc){ pts.chest=[{x:sc[0],y:yChest},{x:sc[1],y:yChest}]; conf.chest=armOK; }
     const body=g.y1-ya;
     const wr = cat==='dress' ? [ya+0.1*body, ya+0.45*body] : [ya+0.3*body, ya+0.65*body];
     let yw=Math.round((wr[0]+wr[1])/2), wb=Infinity;
     for(let y=Math.round(wr[0]); y<=wr[1]; y++){ const v=width(y); if(v>0&&v<wb-0.5){wb=v;yw=y;} }
-    const sw=runAt(g,yw,cx); if(sw){ pts.waist=[{x:sw[0],y:yw},{x:sw[1],y:yw}]; conf.waist=armOK; }
+    let sw=runAt(g,yw,cx);
+    if(hang){ let best=null; for(const r of hang.rows){ if(r[0]<wr[0]||r[0]>wr[1]) continue; if(!best||r[2]-r[1]<best[2]-best[1]) best=r; }
+      if(best){ yw=best[0]; sw=[best[1],best[2]]; } else sw=[hang.Lf.a+hang.Lf.b*yw, hang.Rf.a+hang.Rf.b*yw]; }
+    if(sw){ pts.waist=[{x:sw[0],y:yw},{x:sw[1],y:yw}]; conf.waist=hang?!!hang.rows.find(r=>r[0]===yw):armOK; }
     if(cat==='dress'){ const yh=Math.min(g.y1-Math.round(2*ppc), yw+Math.round(20*ppc)); const s=runAt(g,yh,cx);
       if(s){ pts.hip=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hip=armOK; } }
     if(cat==='tank'){ const yh=g.y1-Math.round(2*ppc); const s=runAt(g,yh,cx); if(s){ pts.hem=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hem=true; } }
@@ -1129,7 +1160,7 @@ const GarmentAuto = (function(){
       for(let x=Math.round(a); x<=b; x++){ const t=g.T[x]; if(t<0) continue; if(t<by-0.5 || (t<=by+1 && Math.abs(x-cx)<Math.abs(bx-cx))){ if(t<by) by=t; bx=x; } }
       return bx<0?null:{x:bx,y:g.T[bx]}; };
     const hl=hpsLine(SL,-1)||hpsTop(-1), hr=hpsLine(SR,1)||hpsTop(1);
-    if(hl){ pts.length=[{x:hl.x,y:hl.y-0.5},{x:hl.x,y:g.B[hl.x]+0.5}]; conf.length=!!SL; }
+    if(hl){ pts.length=[{x:hl.x,y:hl.y-0.5},{x:hl.x,y:g.B[hl.x]+0.5}]; conf.length=!!SL || cat==='tank'; }
     // shoulder tip: where the top edge leaves the shoulder line; a sharp drop (sleeve or armhole) is a confident tip
     const tip=(L,side)=>{ if(!L) return null; const x0=Math.round(cx+side*0.38*Wc);
       for(let x=x0; x>=0&&x<g.T.length; x+=side){ const t=g.T[x];
@@ -1148,11 +1179,12 @@ const GarmentAuto = (function(){
         if(x>=tr.p.x+ppc && (!up || x>up.x)) up={x,y}; }
       // below it, a hanging sleeve is its own strip: follow it row by row while it stays connected
       let prev=null, miss=0;
-      for(let y=ya+1; y<=g.y1 && miss<=ppc; y++){ const body=runAt(g,y,cx); if(!body){ miss++; continue; }
+      for(let y=ya+1; y<=g.y1 && miss<=ppc; y++){ const body=hang?[hang.Lf.a+hang.Lf.b*y, hang.Rf.a+hang.Rf.b*y]:runAt(g,y,cx); if(!body){ miss++; continue; }
         const out=g.runs(y).filter(s=>s[0]>=body[1]+1 && (!prev || (s[0]<=prev[1]+2 && s[1]>=prev[0]-2)));
-        if(out.length){ const s2=out[out.length-1]; prev=s2; miss=0; consider(s2[1], y); } else if(prev){ miss++; } else if(y>ya+2*ppc) break; }
+        if(out.length){ const s2=out[out.length-1]; prev=s2; miss=0; consider(s2[1], y); } else if(prev){ miss++; } else if(y>Math.max(ya, hang?hang.gapTop:ya)+2*ppc) break; }
       if(!bp && up){ bp=up; bd=Math.hypot(up.x-tr.p.x, up.y-tr.p.y); }
       if(bp){ pts.sleeve=[tr.p,bp]; conf.sleeve=tr.ok && bd>8*ppc; }
+      if(hang && hang.parallel && conf.sleeve) conf.sleeve=false;
     }
     return {pts,conf};
   }
@@ -1240,8 +1272,8 @@ const GarmentAuto = (function(){
       if(ch&&sh&&(sh>ch*1.15)) bad('shoulder');
       if(ch&&le&&(le<ch*0.8)) bad('length');
       if(hp&&wa&&(hp<wa*0.85)) { bad('hip'); bad('waist'); }
-      if(hp&&wa&&(wa<hp*0.7)) { bad('waist'); }
-      const ins=L('inseam'); if(ins&&le&&(ins/le<0.5||ins/le>0.9)) { bad('inseam'); bad('length'); } }
+      if(hp&&wa&&(wa<hp*0.6)) { bad('waist'); }
+      const ins=L('inseam'); const rr=cat==='shorts'?[0.25,0.7]:[0.5,0.9]; if(ins&&le&&(ins/le<rr[0]||ins/le>rr[1])) { bad('inseam'); bad('length'); } }
     const conf={}; for(const k in r.conf) conf[k]=r.conf[k] && !cut;
     return {ok:true, pts, conf, cut};
   }
