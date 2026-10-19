@@ -393,21 +393,21 @@ const MODELS = [
           pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,66],PAL.rose,{sub:'çiyin askısından ətəyə'}) ],
    size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
  { id:'pants', name:'Şalvar', desc:'Şalvar, cins, idman şalvarı', fill:'#3d5a7e', stroke:'#26405f',
-   shape:[['M',-21,0],['L',21,0],['L',25,20],['L',24,60],['L',21,104],['L',3,104],['L',0,30],['L',-3,104],['L',-21,104],['L',-24,60],['L',-25,20]],
+   shape:[['M',-21,0],['L',21,0],['L',25,20],['L',24,60],['L',21,104],['L',3,104],['L',1.6,33],['L',0,30],['L',-1.6,33],['L',-3,104],['L',-21,104],['L',-24,60],['L',-25,20]],
    details:[[-21.8,4,21.8,4],[0,4,0,22]],
    pins:[ pin('waist','Bel','Bel eni',[-21,0],[21,0],PAL.violet,{half:true}),
           pin('hip','Omba','Omba eni',[-25,20],[25,20],PAL.amber,{half:true}),
-          pin('thigh','Bud','Bud eni',[-24.6,36],[-0.24,36],PAL.teal,{half:true,sub:'addımdan bir az aşağı'}),
+          pin('thigh','Bud','Bud eni',[-24.69,32.5],[-1.33,32.5],PAL.teal,{half:true,sub:'addımdan bir az aşağı'}),
           pin('inseam','Addım','Daxili uzunluq',[0,30],[3,104],PAL.lime,{sub:'addım tikişindən balağa'}),
           pin('length','Uzunluq','Ümumi uzunluq',[-12,0],[-12,104],PAL.rose,{sub:'beldən balağa'}),
           pin('hem','Balaq','Balaq eni',[-21,104],[-3,104],PAL.sky,{half:true}) ],
    size:m=>{ const w=m.waist*2; return {label:band(w,[[72,'XS'],[78,'S'],[84,'M'],[90,'L'],[96,'XL'],[102,'2XL']],'3XL'), extra:'W'+Math.round(w/2.54), note:'bel çevrəsinə görə'}; } },
  { id:'shorts', name:'Şort', desc:'Şort, bermuda, idman şortu', fill:'#b8925a', stroke:'#8a6a3c',
-   shape:[['M',-20,0],['L',20,0],['L',24,18],['L',26,46],['L',4,46],['L',0,27],['L',-4,46],['L',-26,46],['L',-24,18]],
+   shape:[['M',-20,0],['L',20,0],['L',24,18],['L',26,46],['L',4,46],['L',1.6,30],['L',0,27],['L',-1.6,30],['L',-4,46],['L',-26,46],['L',-24,18]],
    details:[[-20.9,4,20.9,4],[0,4,0,18]],
    pins:[ pin('waist','Bel','Bel eni',[-20,0],[20,0],PAL.violet,{half:true}),
           pin('hip','Omba','Omba eni',[-24,18],[24,18],PAL.amber,{half:true}),
-          pin('thigh','Bud','Bud eni',[-25.07,33],[-1.26,33],PAL.teal,{half:true}),
+          pin('thigh','Bud','Bud eni',[-24.82,29.5],[-1.33,29.5],PAL.teal,{half:true}),
           pin('inseam','Addım','Daxili uzunluq',[0,27],[4,46],PAL.lime),
           pin('length','Uzunluq','Ümumi uzunluq',[-14,0],[-14,46],PAL.rose,{sub:'beldən ətəyə'}) ],
    size:m=>{ const w=m.waist*2; return {label:band(w,[[72,'XS'],[78,'S'],[84,'M'],[90,'L'],[96,'XL'],[102,'2XL']],'3XL'), extra:'W'+Math.round(w/2.54), note:'bel çevrəsinə görə'}; } },
@@ -826,7 +826,283 @@ function cardBarUpdate(){
   const ok=card.filter(c=>onTarget(c)).length;
   el.innerHTML = ok===4 ? '<b style="color:var(--accent)">✓ 4/4 künc yerindədir</b>' : `<b>${ok}/4</b> künc yerindədir. Sarı nöqtəni yaşıl dairəyə çəkin.`;
 }
-$('findBtn').onclick=()=>{ if(!img) return; if(tapMode){ tapMode=false; cardBarUpdate(); return; } runDetect(null); };
+/* ---------- Garment auto-measure: background model → silhouette → category landmarks ---------- */
+const GarmentAuto = (function(){
+  let mk = (w,h)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; };
+  const TOPS = {shirt:1, shirt_sleeveless:1, tank:1, dress:1, jacket:1};
+
+  function load(src, maxSide){
+    const s=Math.min(1, maxSide/Math.max(src.width,src.height));
+    const w=Math.max(8,Math.round(src.width*s)), h=Math.max(8,Math.round(src.height*s));
+    const c=mk(w,h), g=c.getContext('2d',{willReadFrequently:true});
+    g.drawImage(src,0,0,w,h);
+    const d=g.getImageData(0,0,w,h).data, n=w*h, R=new Float32Array(n), G=new Float32Array(n), B=new Float32Array(n);
+    for(let i=0,j=0;i<n;i++,j+=4){ R[i]=d[j]; G[i]=d[j+1]; B[i]=d[j+2]; }
+    return {w,h,s,R,G,B};
+  }
+  function inQuad(p,q){ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=q[j]; if(((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)) ins=!ins; } return ins; }
+  function solve3(A,b){ // tiny Gaussian elimination
+    for(let i=0;i<3;i++){ let m=i; for(let r=i+1;r<3;r++) if(Math.abs(A[r][i])>Math.abs(A[m][i])) m=r;
+      [A[i],A[m]]=[A[m],A[i]]; [b[i],b[m]]=[b[m],b[i]]; if(Math.abs(A[i][i])<1e-9) return null;
+      for(let r=i+1;r<3;r++){ const f=A[r][i]/A[i][i]; for(let c=i;c<3;c++) A[r][c]-=f*A[i][c]; b[r]-=f*b[i]; } }
+    const x=[0,0,0]; for(let i=2;i>=0;i--){ let s=b[i]; for(let c=i+1;c<3;c++) s-=A[i][c]*x[c]; x[i]=s/A[i][i]; } return x;
+  }
+  function fitPlane(S, ch){ // c = a + b*x + c*y, least squares
+    const A=[[0,0,0],[0,0,0],[0,0,0]], b=[0,0,0];
+    for(const p of S){ const v=[1,p.x,p.y]; for(let r=0;r<3;r++){ for(let c=0;c<3;c++) A[r][c]+=v[r]*v[c]; b[r]+=v[r]*p[ch]; } }
+    return solve3(A,b)||[S.reduce((s,p)=>s+p[ch],0)/S.length,0,0];
+  }
+  function dilate(M,w,h,r){
+    const T=new Uint8Array(w*h), O=new Uint8Array(w*h);
+    for(let y=0;y<h;y++){ let cnt=0; const o=y*w;
+      for(let x=0;x<Math.min(r,w);x++) cnt+=M[o+x];
+      for(let x=0;x<w;x++){ if(x+r<w) cnt+=M[o+x+r]; if(x-r-1>=0) cnt-=M[o+x-r-1]; T[o+x]=cnt>0?1:0; } }
+    for(let x=0;x<w;x++){ let cnt=0;
+      for(let y=0;y<Math.min(r,h);y++) cnt+=T[y*w+x];
+      for(let y=0;y<h;y++){ if(y+r<h) cnt+=T[(y+r)*w+x]; if(y-r-1>=0) cnt-=T[(y-r-1)*w+x]; O[y*w+x]=cnt>0?1:0; } }
+    return O;
+  }
+  const inv=M=>{ const O=new Uint8Array(M.length); for(let i=0;i<M.length;i++) O[i]=M[i]?0:1; return O; };
+  const erode=(M,w,h,r)=>inv(dilate(inv(M),w,h,r));
+
+  function segment(W, cardQ){
+    const {w,h,R,G,B}=W, n=w*h;
+    const cx=cardQ?cardQ.reduce((s,p)=>s+p.x,0)/4:0, cy=cardQ?cardQ.reduce((s,p)=>s+p.y,0)/4:0;
+    const cardBig=cardQ?cardQ.map(p=>({x:cx+(p.x-cx)*1.25, y:cy+(p.y-cy)*1.25})):null;
+    const isCard=(x,y)=>cardBig?inQuad({x,y},cardBig):false;
+    // 1. background colour as a plane over the image, fitted to the border band (robust 2-pass)
+    const band=Math.max(2,Math.round(Math.min(w,h)*0.025)); let S=[];
+    for(let y=0;y<h;y+=2) for(let x=0;x<w;x+=2){
+      if(x>=band && x<w-band && y>=band && y<h-band) continue;
+      if(isCard(x,y)) continue; const i=y*w+x; S.push({x,y,r:R[i],g:G[i],b:B[i]});
+    }
+    if(S.length<30) return {ok:false, reason:'fon'};
+    let P;
+    for(let pass=0;pass<3;pass++){
+      P={r:fitPlane(S,'r'), g:fitPlane(S,'g'), b:fitPlane(S,'b')};
+      const res=S.map(p=>Math.hypot(p.r-(P.r[0]+P.r[1]*p.x+P.r[2]*p.y), p.g-(P.g[0]+P.g[1]*p.x+P.g[2]*p.y), p.b-(P.b[0]+P.b[1]*p.x+P.b[2]*p.y)));
+      const sorted=res.slice().sort((a,b)=>a-b), med=sorted[sorted.length>>1];
+      const keep=S.filter((_,i)=>res[i]<=Math.max(8, med*2.5));
+      if(keep.length<30||keep.length===S.length) break; S=keep;
+    }
+    // 2. colour distance to the local background, Otsu threshold
+    const D=new Float32Array(n), hist=new Float64Array(256); let cntH=0;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x;
+      const d=Math.hypot(R[i]-(P.r[0]+P.r[1]*x+P.r[2]*y), G[i]-(P.g[0]+P.g[1]*x+P.g[2]*y), B[i]-(P.b[0]+P.b[1]*x+P.b[2]*y));
+      D[i]=d; if(!isCard(x,y)){ hist[Math.min(255,Math.round(Math.min(d,85)*3))]++; cntH++; } }
+    let sum=0; for(let t=0;t<256;t++) sum+=t*hist[t];
+    let sB=0,wB=0,best=0,thr=20;
+    for(let t=0;t<256;t++){ wB+=hist[t]; if(!wB) continue; const wF=cntH-wB; if(!wF) break; sB+=t*hist[t];
+      const mB=sB/wB, mF=(sum-sB)/wF, v=wB*wF*(mB-mF)*(mB-mF); if(v>best){best=v;thr=t;} }
+    thr=Math.max(14, thr/3);
+    let M=new Uint8Array(n);
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; M[i]=(D[i]>thr && !isCard(x,y))?1:0; }
+    // 3. clean: close small gaps, remove specks
+    M=erode(dilate(M,w,h,2),w,h,2); M=dilate(erode(M,w,h,1),w,h,1);
+    // 4. largest connected component
+    const lab=new Int32Array(n), q=new Int32Array(n); let bestL=0,bestA=0,L=0;
+    for(let s=0;s<n;s++){ if(!M[s]||lab[s]) continue; L++; let hd=0,tl=0,a=0; q[tl++]=s; lab[s]=L;
+      while(hd<tl){ const i=q[hd++]; a++; const x=i%w;
+        if(x>0&&M[i-1]&&!lab[i-1]){lab[i-1]=L;q[tl++]=i-1;} if(x<w-1&&M[i+1]&&!lab[i+1]){lab[i+1]=L;q[tl++]=i+1;}
+        if(i>=w&&M[i-w]&&!lab[i-w]){lab[i-w]=L;q[tl++]=i-w;} if(i<n-w&&M[i+w]&&!lab[i+w]){lab[i+w]=L;q[tl++]=i+w;} }
+      if(a>bestA){bestA=a;bestL=L;} }
+    if(!bestL) return {ok:false, reason:'paltar'};
+    const C=new Uint8Array(n); for(let i=0;i<n;i++) C[i]=lab[i]===bestL?1:0;
+    // 5. fill holes (prints, logos, the card if it lies on the garment)
+    const out=new Uint8Array(n); let hd=0,tl=0;
+    const push=i=>{ if(!C[i]&&!out[i]){ out[i]=1; q[tl++]=i; } };
+    for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); } for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+    while(hd<tl){ const i=q[hd++], x=i%w; if(x>0)push(i-1); if(x<w-1)push(i+1); if(i>=w)push(i-w); if(i<n-w)push(i+w); }
+    let area=0; for(let i=0;i<n;i++){ C[i]=out[i]?0:1; area+=C[i]; }
+    let edge=0; for(let x=0;x<w;x++){ edge+=C[x]+C[(h-1)*w+x]; } for(let y=0;y<h;y++){ edge+=C[y*w]+C[y*w+w-1]; }
+    const frac=area/n;
+    if(frac<0.04) return {ok:false, reason:'kiçik'};
+    if(frac>0.88) return {ok:false, reason:'fon'};
+    return {ok:true, M:C, touch: edge/(2*(w+h)), thr};
+  }
+
+  function geometry(M,w,h){
+    const T=new Int32Array(w).fill(-1), Bt=new Int32Array(w).fill(-1);
+    let y0=h,y1=-1,x0=w,x1=-1;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(M[y*w+x]){ if(T[x]<0)T[x]=y; Bt[x]=y; if(y<y0)y0=y; if(y>y1)y1=y; if(x<x0)x0=x; if(x>x1)x1=x; }
+    const runCache=new Map();
+    const runs=y=>{ y=Math.max(0,Math.min(h-1,Math.round(y))); if(runCache.has(y)) return runCache.get(y);
+      const r=[]; let a=-1; for(let x=0;x<=w;x++){ const v=x<w&&M[y*w+x]; if(v&&a<0)a=x; if(!v&&a>=0){ r.push([a,x]); a=-1; } } runCache.set(y,r); return r; };
+    return {T,B:Bt,y0,y1,x0,x1,runs};
+  }
+  const median=a=>{ const s=a.slice().sort((p,q)=>p-q); return s.length?s[s.length>>1]:0; };
+  function runAt(g,y,x){ const r=g.runs(y); let best=null,bd=Infinity;
+    for(const s of r){ if(x>=s[0]&&x<s[1]) return s; const d=Math.min(Math.abs(x-s[0]),Math.abs(x-s[1])); if(d<bd){bd=d;best=s;} } return best; }
+
+  function tops(g, cat, ppc){
+    const H=g.y1-g.y0, conf={}, pts={};
+    const mids=[]; for(let y=g.y0+0.6*H;y<=g.y0+0.9*H;y+=Math.max(1,H/60)){ const r=g.runs(y); if(!r.length) continue;
+      const wd=r.reduce((a,b)=>(b[1]-b[0]>a[1]-a[0]?b:a)); mids.push((wd[0]+wd[1])/2); }
+    const cx=median(mids);
+    const width=y=>{ const s=runAt(g,y,cx); return s?s[1]-s[0]:0; };
+    // walk up from the lower body; the waist is the running minimum, the armpit is where the
+    // width either jumps (a sleeve joins) or starts shrinking again (armhole of a sleeveless top)
+    let ya=null, minW=Infinity, maxW=0, maxY=null; const hist=[];
+    for(let y=Math.round(g.y0+0.75*H); y>g.y0+0.05*H; y--){
+      const v=width(y); if(!v) continue;
+      if(hist.length>=5){ const loc=median(hist.slice(-10));
+        if(v>loc*1.16 && maxY!==null){ ya=y+1; break; }
+        if(maxY!==null && maxW>minW*1.02 && v<maxW*0.965){ ya=maxY; break; } }
+      const rose=maxW>minW*1.02;
+      if(v<minW && !rose){ minW=v; maxW=v; maxY=y; } else if(v>maxW){ maxW=v; maxY=y; }
+      hist.push(v);
+    }
+    let armOK=ya!==null; if(!armOK) ya=Math.round(g.y0+0.3*H);
+    let yChest=Math.min(g.y1, ya+Math.round(1.0*ppc));
+    for(let k=0;k<3*ppc && yChest+2*ppc<g.y1;k++){ if(width(yChest)>1.06*width(yChest+2*ppc)) yChest++; else break; }
+    const sc=runAt(g,yChest,cx), Wc=sc?sc[1]-sc[0]:H*0.6;
+    if(sc){ pts.chest=[{x:sc[0],y:yChest},{x:sc[1],y:yChest}]; conf.chest=armOK; }
+    const body=g.y1-ya;
+    const wr = cat==='dress' ? [ya+0.1*body, ya+0.45*body] : [ya+0.3*body, ya+0.65*body];
+    let yw=Math.round((wr[0]+wr[1])/2), wb=Infinity;
+    for(let y=Math.round(wr[0]); y<=wr[1]; y++){ const v=width(y); if(v>0&&v<wb-0.5){wb=v;yw=y;} }
+    const sw=runAt(g,yw,cx); if(sw){ pts.waist=[{x:sw[0],y:yw},{x:sw[1],y:yw}]; conf.waist=armOK; }
+    if(cat==='dress'){ const yh=Math.min(g.y1-Math.round(2*ppc), yw+Math.round(20*ppc)); const s=runAt(g,yh,cx);
+      if(s){ pts.hip=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hip=armOK; } }
+    if(cat==='tank'){ const yh=g.y1-Math.round(0.5*ppc); const s=runAt(g,yh,cx); if(s){ pts.hem=[{x:s[0],y:yh},{x:s[1],y:yh}]; conf.hem=true; } }
+    // high point of shoulder (top of the garment next to the neck), on each side
+    const hps=side=>{ let bx=-1, by=Infinity;
+      const a=side<0?cx-0.45*Wc:cx+0.03*Wc, b=side<0?cx-0.03*Wc:cx+0.45*Wc;
+      for(let x=Math.round(a); x<=b; x++){ const t=g.T[x]; if(t<0) continue; if(t<by-0.5 || (t<=by+1 && Math.abs(x-cx)<Math.abs(bx-cx))){ if(t<by) by=t; bx=x; } }
+      return bx<0?null:{x:bx,y:g.T[bx]}; };
+    const hl=hps(-1), hr=hps(1);
+    if(hl){ pts.length=[{x:hl.x,y:hl.y-0.5},{x:hl.x,y:g.B[hl.x]+0.5}]; conf.length=true; }
+    // shoulder tip: walking outward along the top edge, the first place it turns steeply down
+    const lineFit=(xa,xb)=>{ let n=0,sx=0,sy=0,sxx=0,sxy=0; const lo=Math.min(xa,xb), hi=Math.max(xa,xb);
+      for(let x=Math.round(lo); x<=hi; x++){ const t=g.T[x]; if(t<0) continue; n++; sx+=x; sy+=t; sxx+=x*x; sxy+=x*t; }
+      if(n<3) return null; const den=n*sxx-sx*sx; if(Math.abs(den)<1e-9) return null; const b=(n*sxy-sx*sy)/den; return {a:(sy-b*sx)/n, b}; };
+    const tip=(h0,side)=>{ if(!h0) return null; const d=Math.max(2,Math.round(1.2*ppc));
+      for(let x=h0.x+side*Math.round(2*ppc); x>=d&&x<g.T.length-d; x+=side){
+        const t0=g.T[x], t1=g.T[x+side*d]; if(t0<0||t1<0) return {p:{x,y:t0>=0?t0:h0.y},ok:false};
+        if((t1-t0)/d>0.8){
+          // knee = last column that still sits on the shoulder slope line
+          const L1=lineFit(h0.x+side*Math.round(1.5*ppc), x);
+          if(L1){ let xk=x; for(let xx=x; Math.abs(xx-x)<=2*d; xx+=side){ const t=g.T[xx]; if(t<0) break;
+              if(t-(L1.a+L1.b*xx)<=0.25*ppc) xk=xx; else break; }
+            return {p:{x:xk+side*0.5,y:L1.a+L1.b*(xk+side*0.5)},ok:true}; }
+          return {p:{x,y:t0},ok:true}; } }
+      return null; };
+    const tl=tip(hl,-1), tr=tip(hr,1);
+    if(tl&&tr){ pts.shoulder=[tl.p,tr.p]; conf.shoulder=tl.ok&&tr.ok&&Math.abs(tl.p.y-tr.p.y)<1.5*ppc; }
+    if(tr && (cat==='shirt'||cat==='jacket')){
+      // sleeve end: farthest garment point from the right shoulder tip, outside the body
+      let bp=null, bd=0;
+      for(let y=Math.round(tr.p.y); y<=g.y1; y++){ const r=g.runs(y); if(!r.length) continue;
+        const body=runAt(g,y,cx); let cand=null;
+        if(y<=ya) cand=r[r.length-1][1];
+        else { const out=r.filter(s=>body && s[0]>=body[1]+1 && s[1]-s[0]>=0.8*ppc); if(out.length) cand=out[out.length-1][1]; }
+        if(cand===null || cand<tr.p.x+ppc || (sc && cand<sc[1]+ppc)) continue;
+        const d=Math.hypot(cand-tr.p.x,y-tr.p.y); if(d>bd){bd=d;bp={x:cand,y};} }
+      if(bp){ pts.sleeve=[tr.p,bp]; conf.sleeve=tr.ok && bd>8*ppc; }
+    }
+    return {pts,conf};
+  }
+
+  function bottoms(g, cat, ppc){
+    const H=g.y1-g.y0, conf={}, pts={};
+    const mids=[]; for(let y=g.y0+0.01*H;y<=g.y0+0.08*H;y+=1){ const r=g.runs(y); if(!r.length) continue;
+      const wd=r.reduce((a,b)=>(b[1]-b[0]>a[1]-a[0]?b:a)); mids.push((wd[0]+wd[1])/2); }
+    const cx=median(mids);
+    const yw=g.y0+Math.round(0.6*ppc), s0=runAt(g,yw,cx);
+    if(s0){ pts.waist=[{x:s0[0],y:yw},{x:s0[1],y:yw}]; conf.waist=true; }
+    // crotch: first row where the shape splits into two legs around the centre
+    let yc=null, xc=cx;
+    if(cat!=='skirt'){
+      for(let y=Math.round(g.y0+0.12*H); y<g.y0+0.85*H; y++){
+        const r=g.runs(y).filter(s=>s[1]-s[0]>=1.5*ppc);
+        for(let i=0;i+1<r.length;i++){ const ga=r[i][1], gb=r[i+1][0];
+          if(ga<=cx+2*ppc && gb>=cx-2*ppc){ yc=y; xc=(ga+gb)/2; break; } }
+        if(yc!==null) break; }
+    }
+    const okC=yc!==null;
+    const yh = cat==='skirt' ? g.y0+Math.min(18*ppc, 0.4*H) : (okC ? g.y0+0.67*(yc-g.y0) : g.y0+0.2*H);
+    const sh=runAt(g,yh,cx); if(sh){ pts.hip=[{x:sh[0],y:Math.round(yh)},{x:sh[1],y:Math.round(yh)}]; conf.hip=cat==='skirt'||okC; }
+    if(cat==='skirt'){
+      const yb=g.y1-Math.round(0.5*ppc), s=runAt(g,yb,cx); if(s){ pts.hem=[{x:s[0],y:yb},{x:s[1],y:yb}]; conf.hem=true; }
+      const x=Math.round(cx); pts.length=[{x,y:g.T[x]-0.5},{x,y:g.B[x]+0.5}]; conf.length=g.T[x]>=0;
+      return {pts,conf};
+    }
+    if(!okC) return {pts,conf};
+    let inL=null, inR=null, crotchExtrap=false;
+    const legL=y=>{ const cut=inL?inL.a+inL.b*y:xc; let s0=null; for(const s of g.runs(y)) if(s[0]<cut-1) s0=s;
+      return s0 ? [s0[0], Math.min(s0[1], Math.max(cut, s0[0]+1))] : null; };
+    const legR=y=>{ const cut=inR?inR.a+inR.b*y:xc; for(const s of g.runs(y)) if(s[1]>cut+1) return [Math.min(Math.max(s[0],cut), s[1]-1), s[1]]; return null; };
+    { const y3=Math.round(yc+3*ppc), a=legL(y3), b=legR(y3);
+      if(!a||!b||b[0]-a[1]<1.0*ppc) crotchExtrap=true; }
+    const yt=Math.round(yc+2.5*ppc), st=legL(yt);
+    if(st){ pts.thigh=[{x:st[0],y:yt},{x:st[1],y:yt}]; conf.thigh=!crotchExtrap; }
+    let yL1=yc, yR1=yc; for(let y=yc;y<=g.y1;y++){ if(legL(y)) yL1=y; if(legR(y)) yR1=y; }
+    const sr=legR(yR1-1); if(sr){ pts.inseam=[{x:xc,y:yc},{x:sr[0],y:yR1}]; conf.inseam=!crotchExtrap; }
+    const sm=legL(Math.round(yc+5*ppc));
+    if(sm){ const x=Math.round((sm[0]+sm[1])/2); pts.length=[{x,y:g.T[x]-0.5},{x,y:g.B[x]+0.5}]; conf.length=true; }
+    if(cat==='pants'){ const yb=yL1-Math.round(0.5*ppc), s=legL(yb); if(s){ pts.hem=[{x:s[0],y:yb},{x:s[1],y:yb}]; conf.hem=true; } }
+    return {pts,conf};
+  }
+
+  function measure(src, cardQuad, cat, pxPerCm){
+    const W=load(src, 640), ppc=pxPerCm*W.s;
+    const cq=cardQuad?cardQuad.map(p=>({x:p.x*W.s,y:p.y*W.s})):null;
+    const seg=segment(W,cq); if(!seg.ok) return {ok:false, reason:seg.reason};
+    // straighten a tilted photo: the garment's symmetry axis should be vertical
+    let M=seg.M, ang=0; const c0={x:W.w/2,y:W.h/2};
+    const rot=(p,a)=>({x:c0.x+(p.x-c0.x)*Math.cos(a)-(p.y-c0.y)*Math.sin(a), y:c0.y+(p.x-c0.x)*Math.sin(a)+(p.y-c0.y)*Math.cos(a)});
+    for(let it=0; it<2; it++){
+      const g0=geometry(M,W.w,W.h), H0=g0.y1-g0.y0; let n=0,sy=0,sx=0,syy=0,syx=0;
+      for(let y=Math.round(g0.y0+0.15*H0); y<=g0.y0+0.9*H0; y++){ const r=g0.runs(y); if(!r.length) continue;
+        const x=(r[0][0]+r[r.length-1][1])/2; n++; sy+=y; sx+=x; syy+=y*y; syx+=y*x; }
+      if(n<10) break; const b=(n*syx-sy*sx)/(n*syy-sy*sy), t=-Math.atan(b);
+      if(Math.abs(t)<0.004 || Math.abs(t)>0.35) break;
+      ang+=t; const R=new Uint8Array(W.w*W.h);
+      for(let y=0;y<W.h;y++) for(let x=0;x<W.w;x++){ const q=rot({x,y},ang), xi=Math.round(q.x), yi=Math.round(q.y);
+        if(xi>=0&&yi>=0&&xi<W.w&&yi<W.h) R[y*W.w+x]=seg.M[yi*W.w+xi]; }
+      M=R;
+    }
+    const g=geometry(M,W.w,W.h);
+    const r = TOPS[cat] ? tops(g,cat,ppc) : bottoms(g,cat,ppc);
+    const back=p=>{ const q=rot(p,ang); return {x:q.x/W.s, y:q.y/W.s}; };
+    const pts={}; for(const k in r.pts) pts[k]=r.pts[k].map(back);
+    const cut=seg.touch>0.03;
+    const conf={}; for(const k in r.conf) conf[k]=r.conf[k] && !cut;
+    return {ok:true, pts, conf, cut};
+  }
+  return {measure, setFactory:f=>{mk=f;}};
+})();
+
+/* ---------- Automatic measuring points ---------- */
+let pinConf={}, autoImg=null, autoModel=null, autoBusy=false;
+const AUTO_FAIL={fon:'Paltarı fondan ayırmaq alınmadı. Paltarı fərqli rəngli, sadə fonda çəkin və ya nöqtələri əl ilə qoyun.',
+  paltar:'Şəkildə paltar tapılmadı. Paltarı fərqli rəngli, sadə fonda çəkin və ya nöqtələri əl ilə qoyun.',
+  'kiçik':'Paltar şəkildə çox kiçikdir. Telefonu yaxınlaşdırıb yenidən çəkin.'};
+function runAuto(manual){
+  const cal=calibrate(); if(!cal.ok){ toast('Əvvəl kartın künclərini düzgün qoyun'); return; }
+  autoBusy=true; measureBarUpdate();
+  setTimeout(()=>{
+    let r=null; try{ r=GarmentAuto.measure(img, card, model.id, cal.pxPerCm); }catch(_){ r={ok:false,reason:'fon'}; }
+    autoImg=img; autoModel=model.id; autoBusy=false;
+    if(r.ok){
+      pinConf={};
+      model.pins.forEach(p=>{ if(r.pts[p.key]){ pts[p.key]=r.pts[p.key]; pinConf[p.key]=r.conf[p.key]?'ok':'check'; } else pinConf[p.key]='check'; });
+      const nCheck=model.pins.filter(p=>pinConf[p.key]==='check').length;
+      toast(r.cut ? 'Paltar kadrdan çıxır. Sarı nöqtələri yoxlayın və ya paltarı tam kadra salıb yenidən çəkin.'
+        : nCheck ? `Ölçülər avtomatik qoyuldu. ${nCheck} nöqtəni yoxlayın (sarı).` : 'Bütün ölçü nöqtələri avtomatik qoyuldu. Baxıb təsdiqləyin.');
+    } else { pinConf={}; model.pins.forEach(p=>pinConf[p.key]='check'); toast(AUTO_FAIL[r.reason]||AUTO_FAIL.fon); }
+    draw();
+  },40);
+}
+function measureBarUpdate(){
+  const el=$('cardFound'); $('findBtn').textContent='Yenidən avtomatik ölç';
+  if(autoBusy){ el.textContent='Ölçülər avtomatik çıxarılır…'; return; }
+  const all=model.pins.length, nCheck=model.pins.filter(p=>pinConf[p.key]==='check').length;
+  const nAuto=model.pins.filter(p=>pinConf[p.key]==='ok').length;
+  el.innerHTML = nCheck ? `<b style="color:var(--warn)">${nCheck} nöqtəni yoxlayın</b> · sarı haşiyəli nöqtələri tikiş kənarına çəkin`
+    : `<b style="color:var(--accent)">✓ ${all-nCheck}/${all} nöqtə hazırdır</b>${nAuto?' · avtomatik qoyulub':''}`;
+}
+$('findBtn').onclick=()=>{ if(!img) return; if(step===4){ runAuto(true); return; } if(tapMode){ tapMode=false; cardBarUpdate(); return; } runDetect(null); };
 
 /* ---------- Homography: image px -> card plane mm ---------- */
 function solve(A,b){
@@ -911,6 +1187,7 @@ function draw(){
     card.forEach(c=>ring(V(c), (!targets||onTarget(c))?'#34d399':'#fbbf24', 13));
     cardBarUpdate();
   }
+  if(step===4) measureBarUpdate();
   model.pins.forEach(p=>{
     const a=V(pts[p.key][0]), b=V(pts[p.key][1]);
     ctx.globalAlpha=cardMode?.3:1;
@@ -918,7 +1195,10 @@ function draw(){
     ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.stroke();
     ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.setLineDash([7,5]); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha=1;
-    if(!cardMode){ ring(a,p.color,12); ring(b,p.color,12); if(cal.ok) pill((a.x+b.x)/2,(a.y+b.y)/2-(Math.abs(b.y-a.y)>Math.abs(b.x-a.x)?0:15),`${p.label} ${m[p.key].toFixed(1)}`,p.color); }
+    if(!cardMode){ const st=pinConf[p.key];
+      if(st==='check'||st==='ok') [a,b].forEach(pt=>{ ctx.beginPath(); ctx.arc(pt.x,pt.y,17,0,Math.PI*2); ctx.lineWidth=st==='check'?3:2;
+        ctx.setLineDash(st==='check'?[4,3]:[]); ctx.strokeStyle=st==='check'?'#fbbf24':'#34d399'; ctx.stroke(); ctx.setLineDash([]); });
+      ring(a,p.color,12); ring(b,p.color,12); if(cal.ok) pill((a.x+b.x)/2,(a.y+b.y)/2-(Math.abs(b.y-a.y)>Math.abs(b.x-a.x)?0:15),`${p.label} ${m[p.key].toFixed(1)}`,p.color); }
   });
   updateStatus(cal); renderRows($('liveRows'),cal,m);
   $('scaleTxt').textContent=cal.ok?`1 sm ≈ ${cal.pxPerCm.toFixed(1)} px`:'';
@@ -951,6 +1231,7 @@ function renderRows(el,cal,m){
     d.innerHTML=`<span class="sw" style="background:${p.color}"></span><span class="nm"></span><span class="val">${cal.ok?v.toFixed(1):'—'} <span style="font-size:12px;color:var(--muted)">sm</span>${full}</span>`;
     const nm=d.querySelector('.nm'); nm.textContent=p.name;
     const sm=document.createElement('small'); sm.textContent=[p.half?'yarım en':'',p.sub||'',cal.ok?`± ${e.toFixed(1)} sm`:''].filter(Boolean).join(' · '); nm.appendChild(sm);
+    if(pinConf[p.key]==='check'){ const w=document.createElement('small'); w.style.color='var(--warn)'; w.style.fontWeight='600'; w.textContent='yoxlayın'; nm.appendChild(w); }
     el.appendChild(d);
   });
 }
@@ -966,7 +1247,7 @@ cv.addEventListener('pointerdown',e=>{
     card.forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={idx:i, ref:()=>card[i], set:v=>card[i]=v};} });
     if(!best && inQuad(p,card)){ const st=card.map(c=>({...c})); best={ref:()=>p, move:np=>{ card=st.map(c=>({x:c.x+np.x-p.x,y:c.y+np.y-p.y})); }, noLoupe:true}; }
   } else {
-    for(const key in pts) pts[key].forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>pts[key][i], set:v=>pts[key][i]=v};} });
+    for(const key in pts) pts[key].forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>pts[key][i], set:v=>{ pts[key][i]=v; pinConf[key]='manual'; }};} });
   }
   if(!best) return;
   e.preventDefault(); cv.setPointerCapture(e.pointerId);
@@ -988,6 +1269,7 @@ function payload(){
   if(cal.ok) model.pins.forEach(p=>{ if(p.half){ meas[p.key+'_half']=r(m[p.key]); meas[p.key+'_full']=r(m[p.key]*2); meas[p.key+'_full_max_stretch']=r(m[p.key]*2+bonus()); } else meas[p.key]=r(m[p.key]); });
   const sz=cal.ok?model.size(m):null;
   const o={ module:'cinarmall_digital_olcu', version:4, mode, category:model.id, created_at:new Date().toISOString(),
+    point_source:Object.fromEntries(model.pins.map(p=>[p.key, pinConf[p.key]==='ok'?'auto':pinConf[p.key]==='check'?'auto_unconfirmed':'manual'])),
     calibration:{ reference:'ISO/IEC 7810 ID-1 (85.60x53.98mm)', method:'4-point homography', card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
     detected_size:sz?{label:sz.label, extra:sz.extra||null, basis:sz.note}:null, fabric_stretch:stretch, measurements_cm:cal.ok?meas:null };
   if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null; } else o.note=$('note').value.trim()||null;
@@ -1061,11 +1343,13 @@ function go(n){
   if(n===1) requestAnimationFrame(renderCat);
   if(n===3||n===4){
     $('liveBox').hidden = n===3;
-    $('cardBar').hidden = n!==3;
+    $('cardBar').hidden = !(n===3||n===4);
     if(n===3 && img && detectedFor!==img){ targets=null; tapMode=false; runDetect(null); }
+    if(n===3 && detectedFor===img) cardBarUpdate();
+    if(n===4 && img && (autoImg!==img || autoModel!==model.id)){ pinConf={}; runAuto(false); }
     $('hint').innerHTML = n===3
       ? `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">1</span><span><b>Yaşıl dairələr</b> kartın künclərinin düzgün yeridir: proqram kartı şəkildə özü tapır və nöqtələri ora qoyur. Nöqtə yerindən çıxanda <b>sarı</b> olur, yaşıl dairəyə çatanda yaşıl yanır və yerinə yapışır. Kartın ortası məxfilik üçün örtülür.</span>`
-      : `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">2</span><span><b>Rəngli nöqtələri</b> paltarın tikiş kənarlarına qoyun. Hər xəttin adı və ölçüsü üstündə yazılıb.</span>`;
+      : `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">2</span><span>Proqram ölçü nöqtələrini <b>özü qoyur</b>. Yaşıl haşiyəli nöqtələr əmin olduğu yerlərdir, <b>sarı haşiyəlilər</b> yoxlanmalıdır: lazım gəlsə tikiş kənarına sürüşdürün. Tərpətdiyiniz nöqtə təsdiqlənmiş sayılır.</span>`;
     requestAnimationFrame(layout);
   }
   if(n===5){ renderResult(); renderHist(); }
