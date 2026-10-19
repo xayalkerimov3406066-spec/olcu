@@ -180,14 +180,27 @@ details[open] summary{margin-bottom:8px}
 .level::before{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px dashed rgba(255,255,255,.8)}
 .level i{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#fbbf24;box-shadow:0 0 0 3px rgba(0,0,0,.35)}
 .level.ok i{background:#22e07a}
-.level b{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:8px;white-space:nowrap;font:600 13px var(--f-body);background:rgba(0,0,0,.55);padding:4px 10px;border-radius:999px}
 .level.ok{border-color:#22e07a}
 .cam{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:flex;flex-direction:column}
 .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-.camguide{position:absolute;inset:14% 10% 22%;border:2px dashed rgba(255,255,255,.55);border-radius:14px;pointer-events:none}
+.camframes{position:absolute;pointer-events:none}
+.cf-garment{position:absolute;border:2px dashed rgba(255,255,255,.6);border-radius:14px}
+.cf-garment span,.cf-ref span{position:absolute;font:600 12px var(--f-mono);white-space:nowrap}
+.cf-garment span{top:8px;left:10px;color:rgba(255,255,255,.85)}
+.cf-ref{position:absolute;border:3px solid #4fc28a;border-radius:6px;box-shadow:0 0 0 2000px rgba(0,0,0,.0),inset 0 0 0 2px rgba(0,0,0,.35);background:rgba(79,194,138,.12)}
+.cf-ref span{left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);color:#4fc28a;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:999px}
+.cf-ref.ruler{border-radius:3px;background:repeating-linear-gradient(90deg,rgba(79,194,138,.55) 0 2px,transparent 2px 10%)}
+.camseg{display:inline-flex;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px;gap:2px}
+.camseg button{border:0;background:transparent;color:#fff;font:600 13px var(--f-body);padding:7px 11px;border-radius:999px;cursor:pointer}
+.camseg button[aria-pressed="true"]{background:#4fc28a;color:#06140c}
+.levelbar{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:999px;font-size:13px}
+.levelbar .lb-dot{width:12px;height:12px;border-radius:50%;background:#fbbf24}
+.levelbar.ok .lb-dot{background:#22e07a}
+.levelbar.na .lb-dot{background:#777}
+.shutter.tilted{background:#fbbf24}
 .camguide span{position:absolute;top:8px;left:10px;font:600 12px var(--f-mono);color:rgba(255,255,255,.8)}
 .camguide i{position:absolute;right:10px;bottom:10px;width:60px;height:38px;border:2px solid #4fc28a;border-radius:5px;font:600 10px var(--f-mono);font-style:normal;color:#4fc28a;display:grid;place-items:center}
-.camtop{position:relative;display:flex;justify-content:space-between;gap:10px;
+.camtop{position:relative;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
   padding:calc(12px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) 12px max(16px, env(safe-area-inset-left,0px));background:linear-gradient(rgba(0,0,0,.6),transparent)}
 .cbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;font:600 14px var(--f-body);padding:10px 14px;border-radius:999px;cursor:pointer}
 .cbtn.torch[aria-pressed="true"]{background:#ffd54a;color:#1b1b1b;border-color:#ffd54a}
@@ -286,7 +299,7 @@ details[open] summary{margin-bottom:8px}
         <li>Paltarı <b>dik</b> qoyun: yaxa və ya bel yuxarıda olsun (yan düşübsə, proqramda "⟳ Döndər" basın).</li>
         <li>Paltarı hamarlayın, qolları və balaqları düz uzadın.</li>
         <li>Kartı paltarın yanına, eyni səthə qoyun. <b>A4 vərəq</b> daha dəqiqdir: telefon bir az maili olsa belə düzəldilir.</li>
-        <li>Telefonu masaya paralel tutun, paltar və kart tam kadrda olsun.</li>
+        <li>"Kamera" açılanda yuxarıdan etalonu seçin (Kart / A4 / Xətkeş), onu yaşıl çərçivəyə qoyun və tərəzi yaşıl olanda çəkin.</li>
         <li>Yaxşı işıq, kölgəsiz. Flaş lazım deyil.</li>
       </ul>
     </div>
@@ -371,14 +384,19 @@ details[open] summary{margin-bottom:8px}
 </nav>
 <div class="cam" id="cam" hidden>
   <video id="camVideo" playsinline muted autoplay></video>
-  <div class="camguide" aria-hidden="true"><span>Paltar</span><i>Kart</i></div>
-  <div class="level" id="level" hidden><i id="bubble"></i><b id="levelTxt"></b></div>
+  <div class="camframes" id="camFrames" aria-hidden="true">
+    <div class="cf-garment" id="cfGarment"><span>Paltar bu sahədə</span></div>
+    <div class="cf-ref" id="cfRef"><span id="cfRefTxt">Kart</span></div>
+  </div>
+  <div class="level" id="level"><i id="bubble"></i></div>
   <div class="camtop">
     <button class="cbtn" id="camClose">Bağla</button>
+    <span class="camseg" id="camSeg" role="group" aria-label="Etalon"><button data-r="card" aria-pressed="true">Kart</button><button data-r="a4" aria-pressed="false">A4</button><button data-r="ruler" aria-pressed="false">Xətkeş</button></span>
     <button class="cbtn torch" id="torchBtn" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg><span id="torchTxt">Fənər</span></button>
   </div>
   <div class="cambottom">
-    <p id="camHint">Ortadakı dairə yaşıl olana qədər telefonu düzəldin. Paltar və kart (və ya A4) tam kadrda olsun.</p>
+    <div class="levelbar" id="levelBar"><span class="lb-dot" id="lbDot"></span><b id="levelTxt">Tərəzi hazırlanır…</b></div>
+    <p id="camHint">Kartı yaşıl çərçivəyə qoyun. Paltar ağ çərçivənin içində olsun.</p>
     <button class="shutter" id="shutter" aria-label="Şəkil çək"></button>
   </div>
 </div>
@@ -638,23 +656,53 @@ function handleFile(f){
   try{ const url=URL.createObjectURL(f), im=new Image(); im.onload=()=>{ finish(im); URL.revokeObjectURL(url); }; im.onerror=()=>{ URL.revokeObjectURL(url); viaReader(); }; im.src=url; }
   catch(_){ viaReader(); }
 }
-['fileCam','fileGal'].forEach(id=>$(id).addEventListener('change',e=>{ handleFile(e.target.files && e.target.files[0]); e.target.value=''; }));
+['fileCam','fileGal'].forEach(id=>$(id).addEventListener('change',e=>{ handleFile(e.target.files && e.target.files[0]); e.target.value=''; camGuide=null; }));
+$('fileCam').addEventListener('click',e=>{ if(!LIVE_FIRST) return; e.preventDefault();
+  openLive().then(ok=>{ if(!ok) toast('Canlı kamera açılmadı. "Qalereya" ilə şəkil seçin.'); }); });
 $('demoBtn').onclick=()=>{ loadDemo(); go(3); };
 
 /* ---------- Live camera with torch (works where the page is allowed to use the camera) ---------- */
 let stream=null, track=null, torchOn=false;
 function useBitmap(c){
-  img=c; iw=c.width; ih=c.height; isDemo=false;
+  img=c; iw=c.width; ih=c.height; isDemo=false; detectedFor=null; targets=null;
   defaultCard(); defaultRuler(); defaultPinsForPhoto(); showThumb(c.toDataURL('image/jpeg',.7));
 }
+// on-screen frames: where the garment and the chosen reference should lie in the shot
+let camGuide=null;
+const LIVE_FIRST = (()=>{ try{ return window.top===window && !!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) && window.isSecureContext; }catch(_){ return false; } })();
+function camFrameRects(){ // in fractions of the video picture
+  const v=$('camVideo'), vw=v.videoWidth||3, vh=v.videoHeight||4, ar=vw/vh; // width/height
+  if(REF.id==='ruler'){ const w=0.8, h=0.035; return {g:{x:.08,y:.05,w:.84,h:.74}, r:{x:(1-w)/2, y:.86, w, h}, label:'Xətkeşi bu xəttə qoyun (0 və 30 bölgüləri uclarda)'}; }
+  if(REF.id==='a4'){ let w=0.3, h=w*ar*297/210; if(h>0.42){ h=0.42; w=h/(ar*297/210); } return {g:{x:.06,y:.04,w:.88,h:Math.max(.3,.96-h-.06)}, r:{x:(1-w)/2, y:.96-h, w, h}, label:'A4 vərəqi bu çərçivəyə qoyun'}; }
+  const w=0.22, h=w*ar*53.98/85.6; return {g:{x:.07,y:.05,w:.86,h:.76}, r:{x:(1-w)/2, y:.95-h, w, h}, label:'Kartı bu çərçivəyə qoyun'};
+}
+function layoutCamFrames(){
+  const v=$('camVideo'), fr=$('camFrames'); if(!v.videoWidth){ return; }
+  const W=v.clientWidth, H=v.clientHeight, sc=Math.min(W/v.videoWidth, H/v.videoHeight);
+  const dw=v.videoWidth*sc, dh=v.videoHeight*sc, ox=(W-dw)/2, oy=(H-dh)/2;
+  Object.assign(fr.style,{left:ox+'px',top:oy+'px',width:dw+'px',height:dh+'px'});
+  const R=camFrameRects(), put=(el,r)=>Object.assign(el.style,{left:r.x*100+'%',top:r.y*100+'%',width:r.w*100+'%',height:r.h*100+'%'});
+  put($('cfGarment'),R.g); put($('cfRef'),R.r);
+  $('cfRef').classList.toggle('ruler', REF.id==='ruler');
+  $('cfRefTxt').textContent = REF.id==='ruler'?'Xətkeş':REF.id==='a4'?'A4':'Kart';
+  $('camHint').textContent = R.label + '. Paltar ağ çərçivənin içində olsun.';
+  [...$('camSeg').children].forEach(b=>b.setAttribute('aria-pressed', b.dataset.r===REF.id));
+}
+function setRef(id){ REF=REFS[id]; if(id==='ruler'&&rul.length<2&&img) defaultRuler();
+  [...$('refSeg').children].forEach(x=>x.setAttribute('aria-pressed', x.dataset.r===id)); layoutCamFrames(); }
+$('camSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setRef(b.dataset.r); });
+window.addEventListener('resize',()=>{ if(!$('cam').hidden) layoutCamFrames(); });
 async function openLive(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camBlocked(); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camBlocked(); return false; }
+  startLevel();   // must start inside the tap (iPhone asks for motion permission)
   try{
     stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:2560}, height:{ideal:1920}}});
-  }catch(err){ camBlocked(err); return; }
-  track=stream.getVideoTracks()[0]; torchOn=false; startLevel();
+  }catch(err){ stopLevel(); camBlocked(err); return false; }
+  track=stream.getVideoTracks()[0]; torchOn=false;
   const v=$('camVideo'); v.srcObject=stream; $('cam').hidden=false; document.body.style.overflow='hidden';
+  v.onloadedmetadata=layoutCamFrames;
   try{ await v.play(); }catch(_){}
+  layoutCamFrames(); return true;
   // torch capability appears only after the track starts on some phones
   setTimeout(setupTorch, 300);
 }
@@ -671,17 +719,24 @@ $('torchBtn').onclick=async()=>{
   catch(_){ toast('Fənəri yandırmaq alınmadı. Telefonun öz kamerasındakı ⚡ düyməsindən istifadə edin.'); }
 };
 // spirit level: the phone must lie parallel to the floor, or the far side of the garment shrinks
-let tiltNow=null;
+let tiltNow=null, levelTimer=null;
 function onOrient(e){ if(e.beta==null||e.gamma==null) return;
-  const t=Math.hypot(e.beta, e.gamma); tiltNow=t; const L=$('level'); L.hidden=false;
+  // phone lying face-down over the floor: beta and gamma near 0 (portrait) — distance from flat
+  const t=Math.hypot(e.beta, e.gamma); tiltNow=t;
   const k=Math.min(1, t/15), ang=Math.atan2(e.beta,e.gamma);
   $('bubble').style.transform=`translate(${(-Math.cos(ang)*k*45).toFixed(1)}px,${(-Math.sin(ang)*k*45).toFixed(1)}px)`;
-  const ok=t<=2.5; L.classList.toggle('ok',ok); $('levelTxt').textContent= ok?'Düzdür ✓ çəkin':`${t.toFixed(0)}° maili`; }
-async function startLevel(){ tiltNow=null;
-  try{ if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted') return; } }catch(_){ return; }
-  window.addEventListener('deviceorientation', onOrient); }
+  const ok=t<=2.5, near=t<=5; $('level').classList.toggle('ok',ok);
+  $('levelBar').className='levelbar'+(ok?' ok':''); $('shutter').classList.toggle('tilted', !near);
+  $('levelTxt').textContent = ok ? `Tərəzi: ${t.toFixed(1)}° · düzdür, çəkin ✓` : `Tərəzi: ${t.toFixed(0)}° maili · ${Math.abs(e.beta)>Math.abs(e.gamma)?(e.beta>0?'yuxarı kənarı qaldırın':'aşağı kənarı qaldırın'):(e.gamma>0?'sol kənarı qaldırın':'sağ kənarı qaldırın')}`; }
+function stopLevel(){ window.removeEventListener('deviceorientation', onOrient); clearTimeout(levelTimer); }
+function startLevel(){ tiltNow=null; $('level').hidden=false; $('levelBar').className='levelbar'; $('levelTxt').textContent='Tərəzi hazırlanır…'; $('level').classList.remove('ok');
+  const go=()=>{ window.addEventListener('deviceorientation', onOrient);
+    levelTimer=setTimeout(()=>{ if(tiltNow===null){ $('level').hidden=true; $('levelBar').className='levelbar na'; $('levelTxt').textContent='Tərəzi: bu cihazda sensor işləmir, telefonu gözlə düz tutun'; } },1800); };
+  try{ if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') go(); else { $('levelBar').className='levelbar na'; $('levelTxt').textContent='Tərəziyə icazə verilmədi'; } }).catch(()=>go()); return; } }catch(_){}
+  go(); }
 function closeLive(){
-  window.removeEventListener('deviceorientation', onOrient); $('level').hidden=true;
+  stopLevel();
   if(track && torchOn){ try{ track.applyConstraints({advanced:[{torch:false}]}); }catch(_){} }
   if(stream) stream.getTracks().forEach(t=>t.stop());
   stream=null; track=null; torchOn=false; $('camVideo').srcObject=null;
@@ -693,7 +748,11 @@ $('shutter').onclick=()=>{
   const MAX=2400, s=Math.min(1, MAX/Math.max(v.videoWidth,v.videoHeight));
   const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s);
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  const R=camFrameRects(), r=R.r, P=(fx,fy)=>({x:fx*c.width, y:fy*c.height});
+  camGuide={ref:REF.id, quad:[P(r.x,r.y),P(r.x+r.w,r.y),P(r.x+r.w,r.y+r.h),P(r.x,r.y+r.h)], center:P(r.x+r.w/2,r.y+r.h/2), line:[P(r.x,r.y+r.h/2),P(r.x+r.w,r.y+r.h/2)]};
   captureTilt=tiltNow; closeLive(); useBitmap(c);
+  // the reference was placed in its frame: start from there
+  if(camGuide.ref==='ruler') rul=camGuide.line.map(p=>({...p})); else card=camGuide.quad.map(p=>({...p}));
   toast(captureTilt!=null&&captureTilt>4?`Şəkil ${captureTilt.toFixed(0)}° maili çəkildi. Mümkünsə düz tutub təkrar çəkin.`:'Şəkil çəkildi'); go(3);
 };
 function camBlocked(){
@@ -1037,7 +1096,9 @@ function runDetect(at){
   setTimeout(()=>{
     let r=null; try{ r = at ? CardDetect.at(img,at) : CardDetect.auto(img); }catch(_){ r=null; }
     detectedFor=img;
-    if(r){ targets=r.map(p=>({x:p.x,y:p.y})); card=targets.map(p=>({...p})); tapMode=false; toast('Kart tapıldı. Künclər yerinə qoyuldu'); }
+    if(!r && at && camGuide){ try{ r=CardDetect.auto(img); }catch(_){ r=null; } }
+    if(r){ targets=r.map(p=>({x:p.x,y:p.y})); card=targets.map(p=>({...p})); tapMode=false; toast(REF.id==='a4'?'A4 tapıldı. Künclər yerinə qoyuldu':'Kart tapıldı. Künclər yerinə qoyuldu'); }
+    else if(at && camGuide){ targets=null; tapMode=false; toast('Çərçivədə tam tapılmadı: künclər çərçivəyə qoyuldu, onları yoxlayın.'); }
     else if(at){ toast('Bu nöqtədə kart tapılmadı. Kartın açıq, yazısız hissəsinə toxunun və ya küncləri əl ilə qoyun.'); }
     else { targets=null; tapMode=true; toast('Kart avtomatik tapılmadı. Şəkildə kartın üstünə toxunun.'); }
     cardBarUpdate(); draw();
@@ -1441,7 +1502,7 @@ function measureBarUpdate(){
   el.innerHTML = nCheck ? `<b style="color:var(--warn)">${nCheck} nöqtəni yoxlayın</b> · sarı haşiyəli nöqtələri tikiş kənarına çəkin`
     : `<b style="color:var(--accent)">✓ ${all-nCheck}/${all} nöqtə hazırdır</b>${nAuto?' · avtomatik qoyulub':''}`;
 }
-$('refSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; REF=REFS[b.dataset.r];
+$('refSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; REF=REFS[b.dataset.r]; if(camGuide&&camGuide.ref!==REF.id) camGuide=null;
   [...$('refSeg').children].forEach(x=>x.setAttribute('aria-pressed', x===b)); $('refSeg').hidden=false;
   if(REF.id==='ruler' && rul.length<2) defaultRuler();
   toast(REF.id==='a4'?'Etalon: A4 vərəq (29.7 × 21 sm). Telefon əyriliyi də düzəldilir.':REF.id==='ruler'?'Etalon: xətkeş və ya lent. Ən dəqiq miqyas, amma telefon düz tutulmalıdır.':'Etalon: bank kartı (8.56 × 5.4 sm)');
@@ -1811,7 +1872,7 @@ function go(n){
     $('liveBox').hidden = n===3;
     $('cardBar').hidden = !(n===3||n===4);
     $('guideBox').hidden = n!==4; if(n===4) renderGuide($('stepGuide'));
-    if(n===3 && REF.id!=='ruler' && img && detectedFor!==img){ targets=null; tapMode=false; runDetect(null); }
+    if(n===3 && REF.id!=='ruler' && img && detectedFor!==img){ targets=null; tapMode=false; runDetect(camGuide&&camGuide.ref===REF.id?camGuide.center:null); }
     if(n===3 && detectedFor===img) cardBarUpdate();
     if(n===4 && img && (autoImg!==img || autoModel!==model.id)){ pinConf={}; runAuto(false); }
     setHint(n);
