@@ -418,6 +418,8 @@ const PAL = {sky:'#38bdf8', amber:'#f59e0b', violet:'#c084fc', rose:'#fb7185', l
 const pin = (key,label,name,a,b,color,opt={}) => ({key,label,name,a,b,color,...opt});
 const band = (v,t,last) => { for(const [x,l] of t) if(v<x) return l; return last; };
 const TOP = [[94,'XS'],[100,'S'],[106,'M'],[112,'L'],[118,'XL'],[124,'2XL']];
+// measured on the garment laid flat (half chest), not on the body
+const TOP_FLAT = [[43.75,'XS'],[46.25,'S'],[48.75,'M'],[51.25,'L'],[53.75,'XL'],[56.25,'2XL'],[58.75,'3XL']];
 
 /* ---------- Garment models (coordinates in cm, x=0 centre, y=0 top) ---------- */
 const MODELS = [
@@ -429,7 +431,7 @@ const MODELS = [
           pin('waist','Bel','Bel eni',[-24.5,42],[24.5,42],PAL.violet,{half:true}),
           pin('sleeve','Qol','Qol uzunluğu',[22.5,2],[38,62],PAL.lime,{sub:'çiyin tikişindən manjetə'}),
           pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,74],PAL.rose,{sub:'yaxadan ətəyə'}) ],
-   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+   size:m=>({label:band(m.chest,TOP_FLAT,'4XL'), note:'paltarın sinə eninə görə (təxmini)'}) },
  { id:'shirt_sleeveless', name:'Qolsuz köynək', desc:'Yaxalı, düyməli qolsuz köynək və bluzalar', fill:'#a9c4de', stroke:'#6f8fb0',
    shape:[['M',-8,0],['L',-20,2],['Q',-19,16,-25,24],['L',-24,42],['L',-25,72],['L',25,72],['L',24,42],['L',25,24],['Q',19,16,20,2],['L',8,0],['Q',0,7,-8,0]],
    details:[[0,6.5,0,72],[-8,0,-3,8],[8,0,3,8]],
@@ -437,7 +439,7 @@ const MODELS = [
           pin('chest','Sinə','Sinə eni',[-25,24],[25,24],PAL.amber,{half:true,sub:'qoltuqaltı'}),
           pin('waist','Bel','Bel eni',[-24,42],[24,42],PAL.violet,{half:true}),
           pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,72],PAL.rose,{sub:'yaxadan ətəyə'}) ],
-   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+   size:m=>({label:band(m.chest,TOP_FLAT,'4XL'), note:'paltarın sinə eninə görə (təxmini)'}) },
  { id:'tank', name:'Mayka / top', desc:'Askılı mayka, top, idman maykası', fill:'#4f8f7a', stroke:'#2f6656',
    shape:[['M',-6,0],['L',-10,0],['Q',-12,18,-24,22],['L',-22.5,40],['L',-24,66],['L',24,66],['L',22.5,40],['L',24,22],['Q',12,18,10,0],['L',6,0],['Q',0,16,-6,0]],
    details:[],
@@ -445,7 +447,7 @@ const MODELS = [
           pin('waist','Bel','Bel eni',[-22.5,40],[22.5,40],PAL.violet,{half:true}),
           pin('hem','Ətək','Ətək eni',[-24,66],[24,66],PAL.teal,{half:true}),
           pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,66],PAL.rose,{sub:'çiyin askısından ətəyə'}) ],
-   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+   size:m=>({label:band(m.chest,TOP_FLAT,'4XL'), note:'paltarın sinə eninə görə (təxmini)'}) },
  { id:'pants', name:'Şalvar', desc:'Şalvar, cins, idman şalvarı', fill:'#3d5a7e', stroke:'#26405f',
    shape:[['M',-21,0],['L',21,0],['L',25,20],['L',24,60],['L',21,104],['L',3,104],['L',1.6,33],['L',0,30],['L',-1.6,33],['L',-3,104],['L',-21,104],['L',-24,60],['L',-25,20]],
    details:[[-21.8,4,21.8,4],[0,4,0,22]],
@@ -1740,8 +1742,9 @@ function labelCheck(m){
     const di=LETTERS.indexOf(sz.label), diff=li-di;
     // stretch can take the garment one size up
     const tol = bonus()>=4 ? 2 : bonus()>=2 ? 1 : 0;   // a stretchy fabric sits one or two sizes up
-    const ok = diff===0 || (diff>0 && diff<=tol);
+    const ok = Math.abs(diff)<=1 || (diff>0 && diff<=tol);
     const msg = diff===0 ? `Etiket (${raw.toUpperCase()}) real ölçü ilə uyğundur.`
+      : Math.abs(diff)===1 ? `Etiket (${raw.toUpperCase()}) real ölçüyə yaxındır (${sz.label}): brendin kəsiminə görə 1 ölçü fərq normaldır.`
       : ok ? `Real ölçü ${sz.label} kimidir, parça dartıldığı üçün ${raw.toUpperCase()} kimi oturur. Dar (slim) kəsimdir.`
       : diff>0 ? `Etiketdə ${raw.toUpperCase()}, real ölçü ${sz.label} kimidir: ${diff} ölçü dar oturacaq.`
       : `Etiketdə ${raw.toUpperCase()}, real ölçü ${sz.label} kimidir: ${-diff} ölçü geniş oturacaq.`;
@@ -1867,7 +1870,7 @@ $('pwaBtn').onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prom
 const NUM=i=>`<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">${i}</span>`;
 function setHint(n){
   if(n===3) $('hint').innerHTML = REF.id==='ruler'
-    ? `${NUM(1)}<span><b>Xətkeş və ya lent</b> paltarın yanında, eyni səthdə olsun. İki yaşıl nöqtəni onun iki bölgüsünə qoyun (məs. 0 və 50), yuxarıda aralığı sm ilə yazın. Bölgülər nə qədər uzaq olsa, ölçü o qədər dəqiqdir.</span>`
+    ? `${NUM(1)}<span><b>Xətkeş və ya lent</b> paltarın yanında, eyni səthdə olsun. İki yaşıl nöqtəni <b>oxunan iki rəqəmin</b> üstünə qoyun (məs. 10 və 50; lentin metal ucunu yox), yuxarıda aralığı yazın (50−10 = 40). Nöqtəni sürüşdürəndə böyüdücüdə rəqəmi görəcəksiniz. Bölgülər nə qədər uzaq olsa, ölçü o qədər dəqiqdir.</span>`
     : REF.id==='a4'
     ? `${NUM(1)}<span><b>A4 vərəqin 4 küncünü</b> yaşıl dairələrə qoyun. Vərəq paltarın yanında, düz və əzilməmiş olsun. A4 telefonun bir az maili tutulmasını da düzəldir.</span>`
     : `${NUM(1)}<span><b>Yaşıl dairələr</b> kartın künclərinin düzgün yeridir: proqram kartı şəkildə özü tapır və nöqtələri ora qoyur. Nöqtə yerindən çıxanda <b>sarı</b> olur, yaşıl dairəyə çatanda yaşıl yanır və yerinə yapışır. Kartın ortası məxfilik üçün örtülür.</span>`;
