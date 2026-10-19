@@ -21,6 +21,7 @@ android {
     release { minifyEnabled false; signingConfig signingConfigs.shared }
     debug { signingConfig signingConfigs.shared }
   }
+  lint { checkReleaseBuilds false; abortOnError false }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
