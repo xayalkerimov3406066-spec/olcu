@@ -1,0 +1,10 @@
+DIGITAL ÖLÇÜ — quraşdırma (PWA)
+
+1. Bu qovluğun bütün fayllarını HTTPS saytına yükləyin, məsələn:
+   https://cinarmall.com/olcu/   (index.html, manifest.webmanifest, sw.js, icons/)
+   Pulsuz variant: app.netlify.com/drop — qovluğu sürükləyib atın, 1 dəqiqəyə link verir.
+2. Linki telefonda açın:
+   Android (Chrome): menyu ⋮ → "Tətbiqi quraşdır" / "Ana ekrana əlavə et"
+   iPhone (Safari): Paylaş ⬆ → "Ana ekrana əlavə et"
+3. İkon ana ekranda görünür, tətbiq tam ekran açılır, internetsiz də işləyir.
+   Canlı kamera və fənər (Android) yalnız bu yolla, öz domeninizdə işləyir.

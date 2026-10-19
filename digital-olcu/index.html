@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d6b45">
+<meta name="description" content="Bank kartı etalonu ilə telefonda geyim ölçmə">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Digital ölçü">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Digital ölçü</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Onest:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: step-by-step mobile wizard — one screen per step, fixed Geri/İrəli bar at the bottom */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --sunk:#e3e9e1; --line:#cfd8cc;
+  --fg:#17241c; --muted:#5c6b61; --accent:#1d6b45; --accent-fg:#ffffff; --accent-soft:#dcefe3;
+  --warn:#a5640a; --warn-bg:#fbefd9; --bad:#b3261e; --bad-bg:#fbe3e1;
+  --stage:#1b231e; --navbg:rgba(255,255,255,.94);
+  --f-display:"Bricolage Grotesque","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101612; --surface:#18201b; --sunk:#0c110e; --line:#2a352e;
+  --fg:#e8efe9; --muted:#93a399; --accent:#4fc28a; --accent-fg:#06140c; --accent-soft:#163223;
+  --warn:#f0b75a; --warn-bg:#3a2a10; --bad:#ff8a80; --bad-bg:#3d1714;
+  --stage:#0a0e0b; --navbg:rgba(16,22,18,.94); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#101612; --surface:#18201b; --sunk:#0c110e; --line:#2a352e;
+  --fg:#e8efe9; --muted:#93a399; --accent:#4fc28a; --accent-fg:#06140c; --accent-soft:#163223;
+  --warn:#f0b75a; --warn-bg:#3a2a10; --bad:#ff8a80; --bad-bg:#3d1714;
+  --stage:#0a0e0b; --navbg:rgba(16,22,18,.94); color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:12px calc(96px + env(safe-area-inset-bottom, 0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.wrap.wide{max-width:1100px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:19px}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.01em;display:block;line-height:1.1}
+.brand b span{color:var(--accent)}
+.brand small{color:var(--muted);font-size:12px}
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:600 13px var(--f-body);padding:8px 12px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pick:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-weight:800;font-size:clamp(26px,7vw,36px);line-height:1.05;letter-spacing:-.02em}
+h2{font-weight:600;font-size:18px;line-height:1.2}
+.lead{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* intro */
+.how{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.how li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start}
+.num{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:600 14px var(--f-mono)}
+.how b{display:block}
+.how span{color:var(--muted);font-size:14px}
+.privacy{background:var(--stage);color:#e9f3ec;border-radius:18px;padding:20px;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;overflow:hidden;position:relative}
+.privacy h2{color:#fff;font-size:22px;font-weight:800}
+.privacy p{margin:6px 0 0;color:#b9cbbf;font-size:14px}
+.privacy .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.privacy .tags span{font:500 12px var(--f-mono);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;color:#d6e6db}
+@media(max-width:460px){.privacy{grid-template-columns:1fr}}
+
+/* category carousel */
+.carousel{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px}
+.round{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 20px var(--f-body);cursor:pointer;display:grid;place-items:center}
+.preview{background:var(--sunk);border-radius:14px;aspect-ratio:4/5;max-height:52vh;width:100%;display:grid;place-items:center;overflow:hidden}
+.preview canvas{width:100%;height:100%;display:block}
+.catname{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px}
+.catname span{font:500 13px var(--f-mono);color:var(--muted)}
+.mlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mlist span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;background:var(--sunk);border-radius:999px;padding:4px 10px}
+.mlist i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.strip button{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 13px var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
+.strip button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+
+/* photo */
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick{position:relative;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px;cursor:pointer;overflow:hidden;min-height:96px}
+.pick.main{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.pick b{font-size:16px}
+.pick span{font-size:12.5px;opacity:.8}
+.pick input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:200px}
+.pick.wide{grid-column:1 / -1;min-height:auto;flex-direction:row;justify-content:space-between;align-items:center}
+.thumb{border-radius:14px;overflow:hidden;background:var(--stage);display:flex;justify-content:center}
+.thumb img{max-height:220px;display:block}
+.note{font-size:13px;color:var(--muted)}
+.tips{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+
+/* stage */
+.stagecard{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stage{background:var(--stage);position:relative;display:flex;justify-content:center;align-items:center;min-height:240px;user-select:none;-webkit-user-select:none}
+#cv{display:block;touch-action:none;cursor:crosshair}
+#loupe{position:absolute;top:10px;left:10px;width:132px;height:132px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,.5);pointer-events:none;background:#000}
+#loupe.right{left:auto;right:10px}
+.hint{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line)}
+.hint b{color:var(--fg)}
+.status{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:9px 11px;border-radius:10px;background:var(--accent-soft)}
+.status.warn{background:var(--warn-bg)} .status.bad{background:var(--bad-bg)}
+.status .dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--accent)}
+.status.warn .dot{background:var(--warn)} .status.bad .dot{background:var(--bad)}
+.measgrid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.measgrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start}}
+
+/* results */
+.sizehead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.sizebig{font-family:var(--f-display);font-weight:800;font-size:52px;line-height:.9;color:var(--accent);text-align:right}
+.sizebig small{display:block;font:500 13px var(--f-mono);color:var(--muted);margin-top:6px}
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.sw{width:12px;height:12px;border-radius:3px}
+.row .nm{font-weight:500}
+.row .nm small{display:block;color:var(--muted);font-size:11.5px;font-weight:400}
+.val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;font-weight:600;font-size:17px;white-space:nowrap}
+.val small{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+.lbl{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.chips button{border:1px solid var(--line);background:var(--sunk);color:var(--fg);font:500 12.5px var(--f-body);padding:9px 4px;border-radius:9px;cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.field{display:flex;flex-direction:column;gap:5px}
+.field input{font:500 16px var(--f-body);padding:10px 11px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 14px var(--f-body);padding:11px 14px;border-radius:11px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+pre{margin:0;font:500 11.5px/1.5 var(--f-mono);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto;max-height:280px;color:var(--fg)}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hitem{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:13px}
+.hitem .sz{font:800 17px var(--f-display);color:var(--accent);min-width:36px}
+.hitem .meta{color:var(--muted);font-size:11.5px;font-family:var(--f-mono);display:block}
+.hitem button{border:0;background:transparent;color:var(--muted);font:500 12px var(--f-body);cursor:pointer;padding:4px}
+details summary{cursor:pointer;font-weight:600;font-size:14px}
+details[open] summary{margin-bottom:8px}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--navbg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:10px calc(10px + env(safe-area-inset-bottom, 0px))}
+.nav .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.nav .btn{padding:13px 16px;font-size:15px}
+.nav .btn:disabled{opacity:.35;cursor:default}
+.dots{display:flex;flex-direction:column;align-items:center;gap:5px}
+.dots .d{display:flex;gap:5px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);display:block}
+.dots i.on{background:var(--accent);width:18px;border-radius:4px}
+.dots span{font-size:11px;color:var(--muted);white-space:nowrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:30;max-width:90vw;text-align:center}
+/* live camera */
+.cam{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:flex;flex-direction:column}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.camguide{position:absolute;inset:14% 10% 22%;border:2px dashed rgba(255,255,255,.55);border-radius:14px;pointer-events:none}
+.camguide span{position:absolute;top:8px;left:10px;font:600 12px var(--f-mono);color:rgba(255,255,255,.8)}
+.camguide i{position:absolute;right:10px;bottom:10px;width:60px;height:38px;border:2px solid #4fc28a;border-radius:5px;font:600 10px var(--f-mono);font-style:normal;color:#4fc28a;display:grid;place-items:center}
+.camtop{position:relative;display:flex;justify-content:space-between;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) 12px max(16px, env(safe-area-inset-left,0px));background:linear-gradient(rgba(0,0,0,.6),transparent)}
+.cbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;font:600 14px var(--f-body);padding:10px 14px;border-radius:999px;cursor:pointer}
+.cbtn.torch[aria-pressed="true"]{background:#ffd54a;color:#1b1b1b;border-color:#ffd54a}
+.cbtn:disabled{opacity:.45}
+.cambottom{position:relative;margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:16px max(16px, env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px));background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.cambottom p{margin:0;font-size:13px;text-align:center;color:#e5e5e5;max-width:40ch}
+.shutter{width:74px;height:74px;border-radius:50%;border:5px solid #fff;background:#4fc28a;cursor:pointer;box-shadow:0 0 0 3px rgba(0,0,0,.4)}
+.shutter:active{transform:scale(.94)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap" id="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark">D</div>
+      <div><b>Digital <span>ölçü</span></b><small>Cinarmall · kartla geyim ölçmə</small></div>
+    </div>
+    <div class="seg" role="group" aria-label="Rejim">
+      <button id="mSeller" aria-pressed="true">Satıcı</button>
+      <button id="mBuyer" aria-pressed="false">Alıcı</button>
+    </div>
+  </header>
+
+  <!-- 0 · Giriş -->
+  <section class="screen stack" data-step="0">
+    <div>
+      <h1>Paltarı lentsiz ölçün. Bir bank kartı kifayətdir.</h1>
+      <p class="lead">Kartın ölçüsü bütün dünyada eynidir: 85.6 × 54 mm. Smart Fit onu xətkeş kimi istifadə edir və şəkildəki paltarın real santimetrlərini hesablayır.</p>
+    </div>
+    <div class="privacy">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="14" y="4" width="36" height="56" rx="7" fill="none" stroke="#4fc28a" stroke-width="3"/>
+        <rect x="23" y="27" width="18" height="15" rx="3" fill="#4fc28a"/>
+        <path d="M26 27v-4a6 6 0 0 1 12 0v4" fill="none" stroke="#4fc28a" stroke-width="3"/>
+        <circle cx="32" cy="53" r="2" fill="#4fc28a"/>
+      </svg>
+      <div>
+        <h2>Şəkliniz cibinizdə qalır.</h2>
+        <p>Bütün hesablama bu telefonun içində aparılır. Şəkil heç bir serverə getmir, Cinarmall onu görmür. Bizə yalnız santimetrlər çatır. Kart isə sadəcə xətkeşdir: nömrəsi ekranda örtülür və heç yerdə saxlanılmır.</p>
+        <div class="tags"><span>şəkil → telefonda</span><span>kart nömrəsi → örtülü</span><span>bizə → yalnız sm</span></div>
+      </div>
+    </div>
+    <div class="box">
+      <span class="eyebrow">İşləmə qaydası</span>
+      <ol class="how" style="margin-top:12px">
+        <li><span class="num">1</span><div><b>Geyim növünü seçin</b><span>Köynək, şalvar, şort, don və s. Hər növün öz ölçü nöqtələri var.</span></div></li>
+        <li><span class="num">2</span><div><b>Paltarı düz sərin, yanına kart qoyun</b><span>Masa və ya döşəmə. Kart paltarın üstünə yox, yanına, eyni səthə.</span></div></li>
+        <li><span class="num">3</span><div><b>Yuxarıdan şəkil çəkin</b><span>Telefonu yerə paralel, təxminən 1 metr hündürlükdən tutun.</span></div></li>
+        <li><span class="num">4</span><div><b>Kartın künclərini və nöqtələri yerləşdirin</b><span>Sürüşdürəndə böyüdücü açılır. Ölçülər dərhal hazırdır.</span></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 1 · Kateqoriya -->
+  <section class="screen stack" data-step="1" hidden>
+    <div><h2>Nəyi ölçürük?</h2><p class="lead">Geyim növünü seçin. Şəkildə hansı nöqtələrin ölçüləcəyi göstərilir.</p></div>
+    <div class="strip" id="catStrip"></div>
+    <div class="box">
+      <div class="carousel">
+        <button class="round" id="catPrev" aria-label="Əvvəlki model">‹</button>
+        <div class="preview"><canvas id="catCv"></canvas></div>
+        <button class="round" id="catNext" aria-label="Növbəti model">›</button>
+      </div>
+      <div class="catname"><h2 id="catName"></h2><span id="catCount"></span></div>
+      <p class="note" id="catDesc" style="margin:4px 0 0"></p>
+      <div class="mlist" id="catMeas"></div>
+    </div>
+  </section>
+
+  <!-- 2 · Şəkil -->
+  <section class="screen stack" data-step="2" hidden>
+    <div><h2>Şəkil</h2><p class="lead" id="photoLead"></p></div>
+    <div class="picks">
+      <label class="pick main"><b>Kamera</b><span>İndi şəkil çək</span>
+        <input id="fileCam" type="file" accept="image/*" capture="environment"></label>
+      <label class="pick"><b>Qalereya</b><span>Hazır şəkli seç</span>
+        <input id="fileGal" type="file" accept="image/*"></label>
+      <button class="pick wide" id="liveBtn" type="button"><span style="opacity:1;text-align:left"><b style="display:block;font-size:15px">Canlı kamera + fənər</b><span>Qaranlıq otaqda işığı yandırıb çəkin</span></span><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg></button>
+      <button class="pick wide" id="demoBtn" type="button"><span style="opacity:1;text-align:left"><b style="display:block;font-size:15px">Nümunə ilə sınayın</b><span>Şəkil yoxdursa, hazır modeldə yoxlayın</span></span><span style="font-size:20px;opacity:1">›</span></button>
+    </div>
+    <div class="thumb" id="thumb" hidden></div>
+    <div class="box">
+      <span class="eyebrow">Dəqiq nəticə üçün</span>
+      <ul class="tips" style="margin-top:8px">
+        <li>Paltarı hamarlayın, qolları və balaqları düz uzadın.</li>
+        <li>Kartı paltarın yanına, eyni səthə qoyun.</li>
+        <li>Telefonu masaya paralel tutun, paltar və kart tam kadrda olsun.</li>
+        <li>Yaxşı işıq, kölgəsiz. Flaş lazım deyil.</li>
+      </ul>
+    </div>
+    <p class="note"><b>İşıq:</b> "Canlı kamera + fənər" telefonun fənərini birbaşa yandırır (Android, Chrome). iPhone-da və ya canlı kamera açılmayanda "Kamera" düyməsinə basın və telefonun öz kamerasındakı ⚡ işarəsi ilə işığı yandırın.</p>
+    <p class="note">Kamera açılmırsa, bu səhifəni telefonun brauzerində (Safari və ya Chrome) açın: bəzi tətbiqlərin daxili pəncərəsi kameraya icazə vermir. "Qalereya" ilə əvvəlcədən çəkilmiş şəkli də seçə bilərsiniz.</p>
+  </section>
+
+  <!-- 3 & 4 · Kart / Ölçülər -->
+  <section class="screen" data-step="3" hidden>
+    <div class="measgrid">
+      <div class="stagecard">
+        <div class="stage" id="stage">
+          <canvas id="cv"></canvas>
+          <canvas id="loupe" width="264" height="264" hidden></canvas>
+        </div>
+        <div class="hint" id="hint"></div>
+      </div>
+      <div class="stack">
+        <div class="status" id="status"><span class="dot"></span><span id="statusTxt"></span></div>
+        <div class="box" id="liveBox" hidden>
+          <div class="sizehead" style="margin-bottom:8px"><h2>Canlı ölçülər</h2><span class="note" id="scaleTxt"></span></div>
+          <div class="rows" id="liveRows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Nəticə -->
+  <section class="screen stack" data-step="5" hidden>
+    <div class="box">
+      <div class="sizehead">
+        <div><span class="eyebrow" id="resCat"></span><h2 style="margin-top:4px">Ölçülər hazırdır</h2><span class="note" id="resNote"></span></div>
+        <div class="sizebig" id="sizeBig">M</div>
+      </div>
+      <div class="rows" id="resRows" style="margin-top:10px"></div>
+    </div>
+    <div class="box stack">
+      <div>
+        <span class="lbl">Parça elastikliyi</span>
+        <div class="chips" id="chips">
+          <button data-s="none" aria-pressed="false">Dartılmır</button>
+          <button data-s="low" aria-pressed="true">Az elastik +2</button>
+          <button data-s="high" aria-pressed="false">Likralı +4</button>
+        </div>
+      </div>
+      <div class="two" id="sellerFields">
+        <div class="field"><label class="lbl" for="sku" style="margin:0">Məhsul kodu (SKU)</label><input id="sku" placeholder="CM-10234"></div>
+        <div class="field"><label class="lbl" for="tag" style="margin:0">Etiketdəki ölçü</label><input id="tag" placeholder="L"></div>
+      </div>
+      <div class="field" id="buyerFields" hidden><label class="lbl" for="note" style="margin:0">Qeyd</label><input id="note" placeholder="Ən yaxşı oturan şalvarım"></div>
+      <button class="btn primary" id="saveBtn">Ölçüləri yadda saxla</button>
+    </div>
+    <div class="box">
+      <h2 style="margin-bottom:10px">Saxlanmış ölçülər</h2>
+      <div class="hist" id="hist"></div>
+    </div>
+    <div class="box">
+      <details>
+        <summary>API payload (JSON)</summary>
+        <pre id="json"></pre>
+        <button class="btn" id="copyBtn" style="margin-top:8px">JSON-u kopyala</button>
+      </details>
+    </div>
+  </section>
+</div>
+
+<nav class="nav">
+  <div class="in">
+    <button class="btn" id="backBtn">‹ Geri</button>
+    <div class="dots"><div class="d" id="dots"></div><span id="stepName"></span></div>
+    <button class="btn primary" id="nextBtn">İrəli ›</button>
+  </div>
+</nav>
+<div class="cam" id="cam" hidden>
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div class="camguide" aria-hidden="true"><span>Paltar</span><i>Kart</i></div>
+  <div class="camtop">
+    <button class="cbtn" id="camClose">Bağla</button>
+    <button class="cbtn torch" id="torchBtn" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg><span id="torchTxt">Fənər</span></button>
+  </div>
+  <div class="cambottom">
+    <p id="camHint">Telefonu masaya paralel tutun. Paltar və kart tam kadrda olsun.</p>
+    <button class="shutter" id="shutter" aria-label="Şəkil çək"></button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+const CARD_L = 85.6, CARD_S = 53.98; // mm, ISO/IEC 7810 ID-1
+const PAL = {sky:'#38bdf8', amber:'#f59e0b', violet:'#c084fc', rose:'#fb7185', lime:'#a3e635', teal:'#2dd4bf'};
+const pin = (key,label,name,a,b,color,opt={}) => ({key,label,name,a,b,color,...opt});
+const band = (v,t,last) => { for(const [x,l] of t) if(v<x) return l; return last; };
+const TOP = [[94,'XS'],[100,'S'],[106,'M'],[112,'L'],[118,'XL'],[124,'2XL']];
+
+/* ---------- Garment models (coordinates in cm, x=0 centre, y=0 top) ---------- */
+const MODELS = [
+ { id:'shirt', name:'Qollu köynək', desc:'Köynək, futbolka, sviter, uzunqol', fill:'#c9d8e6', stroke:'#8ea7bf',
+   shape:[['M',-8,0],['L',-22.5,2],['L',-38,62],['L',-30.5,64.5],['L',-26,24],['L',-24.5,42],['L',-25.5,74],['L',25.5,74],['L',24.5,42],['L',26,24],['L',30.5,64.5],['L',38,62],['L',22.5,2],['L',8,0],['Q',0,7,-8,0]],
+   details:[[0,6.5,0,74]],
+   pins:[ pin('shoulder','Çiyin','Çiyin eni',[-22.5,2],[22.5,2],PAL.sky),
+          pin('chest','Sinə','Sinə eni',[-26,24],[26,24],PAL.amber,{half:true,sub:'qoltuqaltı'}),
+          pin('waist','Bel','Bel eni',[-24.5,42],[24.5,42],PAL.violet,{half:true}),
+          pin('sleeve','Qol','Qol uzunluğu',[22.5,2],[38,62],PAL.lime,{sub:'çiyin tikişindən manjetə'}),
+          pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,74],PAL.rose,{sub:'yaxadan ətəyə'}) ],
+   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+ { id:'shirt_sleeveless', name:'Qolsuz köynək', desc:'Yaxalı, düyməli qolsuz köynək və bluzalar', fill:'#e6e1d3', stroke:'#aaa28c',
+   shape:[['M',-8,0],['L',-20,2],['Q',-19,16,-25,24],['L',-24,42],['L',-25,72],['L',25,72],['L',24,42],['L',25,24],['Q',19,16,20,2],['L',8,0],['Q',0,7,-8,0]],
+   details:[[0,6.5,0,72],[-8,0,-3,8],[8,0,3,8]],
+   pins:[ pin('shoulder','Çiyin','Çiyin eni',[-20,2],[20,2],PAL.sky,{sub:'qoltuq kəsiyinin üst nöqtəsi'}),
+          pin('chest','Sinə','Sinə eni',[-25,24],[25,24],PAL.amber,{half:true,sub:'qoltuqaltı'}),
+          pin('waist','Bel','Bel eni',[-24,42],[24,42],PAL.violet,{half:true}),
+          pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,72],PAL.rose,{sub:'yaxadan ətəyə'}) ],
+   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+ { id:'tank', name:'Mayka / top', desc:'Askılı mayka, top, idman maykası', fill:'#4f8f7a', stroke:'#2f6656',
+   shape:[['M',-6,0],['L',-10,0],['Q',-12,18,-24,22],['L',-22.5,40],['L',-24,66],['L',24,66],['L',22.5,40],['L',24,22],['Q',12,18,10,0],['L',6,0],['Q',0,16,-6,0]],
+   details:[],
+   pins:[ pin('chest','Sinə','Sinə eni',[-24,22],[24,22],PAL.amber,{half:true,sub:'qoltuqaltı'}),
+          pin('waist','Bel','Bel eni',[-22.5,40],[22.5,40],PAL.violet,{half:true}),
+          pin('hem','Ətək','Ətək eni',[-24,66],[24,66],PAL.teal,{half:true}),
+          pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,66],PAL.rose,{sub:'çiyin askısından ətəyə'}) ],
+   size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
+ { id:'pants', name:'Şalvar', desc:'Şalvar, cins, idman şalvarı', fill:'#3d5a7e', stroke:'#26405f',
+   shape:[['M',-21,0],['L',21,0],['L',25,20],['L',24,60],['L',21,104],['L',3,104],['L',0,30],['L',-3,104],['L',-21,104],['L',-24,60],['L',-25,20]],
+   details:[[-21.8,4,21.8,4],[0,4,0,22]],
+   pins:[ pin('waist','Bel','Bel eni',[-21,0],[21,0],PAL.violet,{half:true}),
+          pin('hip','Omba','Omba eni',[-25,20],[25,20],PAL.amber,{half:true}),
+          pin('thigh','Bud','Bud eni',[-24.6,36],[-0.24,36],PAL.teal,{half:true,sub:'addımdan bir az aşağı'}),
+          pin('inseam','Addım','Daxili uzunluq',[0,30],[3,104],PAL.lime,{sub:'addım tikişindən balağa'}),
+          pin('length','Uzunluq','Ümumi uzunluq',[-12,0],[-12,104],PAL.rose,{sub:'beldən balağa'}),
+          pin('hem','Balaq','Balaq eni',[-21,104],[-3,104],PAL.sky,{half:true}) ],
+   size:m=>{ const w=m.waist*2; return {label:band(w,[[72,'XS'],[78,'S'],[84,'M'],[90,'L'],[96,'XL'],[102,'2XL']],'3XL'), extra:'W'+Math.round(w/2.54), note:'bel çevrəsinə görə'}; } },
+ { id:'shorts', name:'Şort', desc:'Şort, bermuda, idman şortu', fill:'#b8925a', stroke:'#8a6a3c',
+   shape:[['M',-20,0],['L',20,0],['L',24,18],['L',26,46],['L',4,46],['L',0,27],['L',-4,46],['L',-26,46],['L',-24,18]],
+   details:[[-20.9,4,20.9,4],[0,4,0,18]],
+   pins:[ pin('waist','Bel','Bel eni',[-20,0],[20,0],PAL.violet,{half:true}),
+          pin('hip','Omba','Omba eni',[-24,18],[24,18],PAL.amber,{half:true}),
+          pin('thigh','Bud','Bud eni',[-25.07,33],[-1.26,33],PAL.teal,{half:true}),
+          pin('inseam','Addım','Daxili uzunluq',[0,27],[4,46],PAL.lime),
+          pin('length','Uzunluq','Ümumi uzunluq',[-14,0],[-14,46],PAL.rose,{sub:'beldən ətəyə'}) ],
+   size:m=>{ const w=m.waist*2; return {label:band(w,[[72,'XS'],[78,'S'],[84,'M'],[90,'L'],[96,'XL'],[102,'2XL']],'3XL'), extra:'W'+Math.round(w/2.54), note:'bel çevrəsinə görə'}; } },
+ { id:'skirt', name:'Ətək', desc:'Düz, A-siluet, midi ətəklər', fill:'#7d4462', stroke:'#5a2c45',
+   shape:[['M',-19,0],['L',19,0],['L',23,18],['L',30,58],['L',-30,58],['L',-23,18]],
+   details:[[-19.9,4,19.9,4]],
+   pins:[ pin('waist','Bel','Bel eni',[-19,0],[19,0],PAL.violet,{half:true}),
+          pin('hip','Omba','Omba eni',[-23,18],[23,18],PAL.amber,{half:true}),
+          pin('hem','Ətək','Ətək eni',[-30,58],[30,58],PAL.teal,{half:true}),
+          pin('length','Uzunluq','Ümumi uzunluq',[0,0],[0,58],PAL.rose) ],
+   size:m=>({label:band(m.waist*2,[[64,'XS'],[70,'S'],[76,'M'],[82,'L'],[88,'XL'],[94,'2XL']],'3XL'), note:'bel çevrəsinə görə'}) },
+ { id:'dress', name:'Don', desc:'Gündəlik və axşam donları', fill:'#b0573f', stroke:'#83392a',
+   shape:[['M',-7,0],['L',-18,2],['Q',-17,14,-23,20],['L',-19,38],['L',-25,58],['L',-32,98],['L',32,98],['L',25,58],['L',19,38],['L',23,20],['Q',17,14,18,2],['L',7,0],['Q',0,14,-7,0]],
+   details:[[-19,38,19,38]],
+   pins:[ pin('shoulder','Çiyin','Çiyin eni',[-18,2],[18,2],PAL.sky),
+          pin('chest','Sinə','Sinə eni',[-23,20],[23,20],PAL.amber,{half:true}),
+          pin('waist','Bel','Bel eni',[-19,38],[19,38],PAL.violet,{half:true}),
+          pin('hip','Omba','Omba eni',[-25,58],[25,58],PAL.teal,{half:true}),
+          pin('length','Uzunluq','Ümumi uzunluq',[-7,0],[-7,98],PAL.rose,{sub:'çiyindən ətəyə'}) ],
+   size:m=>({label:band(m.chest*2,[[86,'XS'],[92,'S'],[98,'M'],[104,'L'],[110,'XL'],[116,'2XL']],'3XL'), note:'sinə çevrəsinə görə'}) },
+ { id:'jacket', name:'Gödəkçə / pencək', desc:'Gödəkçə, pencək, palto', fill:'#3a3f45', stroke:'#22262a',
+   shape:[['M',-9,0],['L',-24,3],['L',-41,64],['L',-32,67],['L',-29,26],['L',-28,45],['L',-28,72],['L',28,72],['L',28,45],['L',29,26],['L',32,67],['L',41,64],['L',24,3],['L',9,0],['Q',0,6,-9,0]],
+   details:[[0,5,0,72]],
+   pins:[ pin('shoulder','Çiyin','Çiyin eni',[-24,3],[24,3],PAL.sky),
+          pin('chest','Sinə','Sinə eni',[-29,26],[29,26],PAL.amber,{half:true}),
+          pin('waist','Bel','Bel eni',[-28,45],[28,45],PAL.violet,{half:true}),
+          pin('sleeve','Qol','Qol uzunluğu',[24,3],[41,64],PAL.lime),
+          pin('length','Uzunluq','Ümumi uzunluq',[-9,0],[-9,72],PAL.rose,{sub:'yaxadan ətəyə'}) ],
+   size:m=>({label:band(m.chest*2,[[100,'XS'],[106,'S'],[112,'M'],[118,'L'],[124,'XL'],[130,'2XL']],'3XL'), note:'sinə çevrəsinə görə'}) }
+];
+MODELS.forEach(m=>{
+  let minX=1e9,maxX=-1e9,maxY=-1e9;
+  m.shape.forEach(op=>{ for(let i=1;i<op.length;i+=2){ minX=Math.min(minX,op[i]); maxX=Math.max(maxX,op[i]); maxY=Math.max(maxY,op[i+1]); } });
+  m.bbox={minX,maxX,maxY};
+});
+
+function tracePath(g,m,P){
+  g.beginPath();
+  m.shape.forEach(op=>{
+    if(op[0]==='M'){ const p=P(op[1],op[2]); g.moveTo(p.x,p.y); }
+    else if(op[0]==='L'){ const p=P(op[1],op[2]); g.lineTo(p.x,p.y); }
+    else { const c=P(op[1],op[2]), p=P(op[3],op[4]); g.quadraticCurveTo(c.x,c.y,p.x,p.y); }
+  });
+  g.closePath();
+}
+function paintGarment(g,m,P,lw){
+  tracePath(g,m,P);
+  g.save(); g.shadowColor='rgba(0,0,0,.25)'; g.shadowBlur=lw*5; g.shadowOffsetY=lw*1.5;
+  g.fillStyle=m.fill; g.fill(); g.restore();
+  g.strokeStyle=m.stroke; g.lineWidth=lw; g.stroke();
+  g.strokeStyle='rgba(0,0,0,.22)'; g.lineWidth=lw*.8; g.setLineDash([lw*3,lw*2]);
+  m.details.forEach(([a,b,c,d])=>{ const p=P(a,b), q=P(c,d); g.beginPath(); g.moveTo(p.x,p.y); g.lineTo(q.x,q.y); g.stroke(); });
+  g.setLineDash([]);
+}
+
+/* ---------- State ---------- */
+let catIdx = 0, model = MODELS[0];
+let step = 0, mode = 'seller', stretch = 'low';
+let img = null, iw = 0, ih = 0, k = 1, dpr = 1, isDemo = false;
+let card = [], pts = {};
+let drag = null;
+const cv = $('cv'), ctx = cv.getContext('2d'), loupe = $('loupe'), lctx = loupe.getContext('2d'), stage = $('stage');
+const STEPS = ['Giriş','Növ','Şəkil','Kart','Nöqtələr','Nəticə'];
+
+/* ---------- Demo photo for the selected model: 14 px = 1 cm ---------- */
+function makeDemo(m){
+  const s=14, b=m.bbox, W=(b.maxX-b.minX+8)*s, H=(b.maxY+4+12)*s;
+  const c=document.createElement('canvas'); c.width=Math.round(W); c.height=Math.round(H);
+  const g=c.getContext('2d');
+  const tg=g.createLinearGradient(0,0,W,H); tg.addColorStop(0,'#dcd6cb'); tg.addColorStop(1,'#cbc3b4');
+  g.fillStyle=tg; g.fillRect(0,0,W,H);
+  g.globalAlpha=.07; g.strokeStyle='#5a4a33';
+  for(let y=0;y<H;y+=8){ g.beginPath(); g.moveTo(0,y); g.lineTo(W,y+3); g.stroke(); }
+  g.globalAlpha=1;
+  const P=(x,y)=>({x:(x-b.minX+4)*s, y:(y+4)*s});
+  paintGarment(g,m,P,3);
+  const ms=s/10, w=CARD_L*ms, h=CARD_S*ms, cc=P(b.maxX-3, b.maxY+8), a=-9*Math.PI/180;
+  g.save(); g.translate(cc.x,cc.y); g.rotate(a);
+  g.shadowColor='rgba(0,0,0,.3)'; g.shadowBlur=8; g.shadowOffsetY=3;
+  const cg=g.createLinearGradient(-w/2,-h/2,w/2,h/2); cg.addColorStop(0,'#1f7a52'); cg.addColorStop(1,'#0f4430');
+  g.fillStyle=cg; g.beginPath(); g.roundRect(-w/2,-h/2,w,h,4); g.fill(); g.shadowColor='transparent';
+  g.fillStyle='#d8b45a'; g.fillRect(-w/2+12,-8,16,12);
+  g.restore();
+  const corners=[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,y])=>({x:cc.x+x*Math.cos(a)-y*Math.sin(a), y:cc.y+x*Math.sin(a)+y*Math.cos(a)}));
+  const pinsPx={}; m.pins.forEach(p=>pinsPx[p.key]=[P(...p.a),P(...p.b)]);
+  return {canvas:c, corners, pins:pinsPx};
+}
+function loadDemo(){
+  const d=makeDemo(model);
+  img=d.canvas; iw=img.width; ih=img.height; isDemo=true;
+  card=d.corners.map(p=>({x:p.x+(Math.random()-.5)*1.2, y:p.y+(Math.random()-.5)*1.2}));
+  pts=d.pins;
+  showThumb(img.toDataURL('image/jpeg',.7));
+}
+function defaultPinsForPhoto(){
+  const b=model.bbox, bw=b.maxX-b.minX, bh=b.maxY;
+  const sc=Math.min(iw*.7/bw, ih*.62/bh);
+  const ox=iw/2-(b.minX+b.maxX)/2*sc, oy=ih*.42-bh*sc/2;
+  const P=(x,y)=>({x:ox+x*sc, y:oy+y*sc});
+  pts={}; model.pins.forEach(p=>pts[p.key]=[P(...p.a),P(...p.b)]);
+}
+function defaultCard(){
+  const cw=iw*.16, ch=cw*CARD_S/CARD_L, cx=iw*.5, cy=ih*.87;
+  card=[{x:cx-cw/2,y:cy-ch/2},{x:cx+cw/2,y:cy-ch/2},{x:cx+cw/2,y:cy+ch/2},{x:cx-cw/2,y:cy+ch/2}];
+}
+
+/* ---------- Category screen ---------- */
+function renderCat(){
+  model=MODELS[catIdx];
+  $('catName').textContent=model.name;
+  $('catCount').textContent=`${catIdx+1} / ${MODELS.length}`;
+  $('catDesc').textContent=model.desc;
+  $('catMeas').innerHTML='';
+  model.pins.forEach(p=>{ const s=document.createElement('span'); s.innerHTML=`<i style="background:${p.color}"></i>`; s.append(p.name); $('catMeas').appendChild(s); });
+  [...$('catStrip').children].forEach((b,i)=>b.setAttribute('aria-pressed', i===catIdx));
+  const act=$('catStrip').children[catIdx]; if(act && act.scrollIntoView) act.scrollIntoView({block:'nearest',inline:'center'});
+  drawCatPreview();
+}
+function drawCatPreview(){
+  const c=$('catCv'), box=c.parentElement, r=Math.min(window.devicePixelRatio||1,3);
+  const W=box.clientWidth, H=box.clientHeight; if(!W||!H) return;
+  c.width=W*r; c.height=H*r; const g=c.getContext('2d'); g.setTransform(r,0,0,r,0,0);
+  const b=model.bbox, bw=b.maxX-b.minX+6, bh=b.maxY+6, s=Math.min(W/bw,H/bh);
+  const ox=(W-(b.maxX-b.minX)*s)/2-b.minX*s, oy=(H-b.maxY*s)/2;
+  const P=(x,y)=>({x:ox+x*s,y:oy+y*s});
+  g.clearRect(0,0,W,H);
+  paintGarment(g,model,P,2);
+  model.pins.forEach(p=>{
+    const a=P(...p.a), q=P(...p.b);
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(q.x,q.y);
+    g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=4; g.stroke();
+    g.strokeStyle=p.color; g.lineWidth=2.2; g.setLineDash([6,4]); g.stroke(); g.setLineDash([]);
+    [a,q].forEach(pt=>{ g.beginPath(); g.arc(pt.x,pt.y,4.5,0,Math.PI*2); g.fillStyle=p.color; g.fill(); g.lineWidth=1.5; g.strokeStyle='#111'; g.stroke(); });
+  });
+}
+MODELS.forEach((m,i)=>{ const b=document.createElement('button'); b.textContent=m.name; b.onclick=()=>{catIdx=i; changeModel();}; $('catStrip').appendChild(b); });
+$('catPrev').onclick=()=>{ catIdx=(catIdx-1+MODELS.length)%MODELS.length; changeModel(); };
+$('catNext').onclick=()=>{ catIdx=(catIdx+1)%MODELS.length; changeModel(); };
+function changeModel(){
+  renderCat();
+  if(img){ if(isDemo) loadDemo(); else defaultPinsForPhoto(); }
+}
+let sx0=null;
+$('catCv').addEventListener('pointerdown',e=>sx0=e.clientX);
+$('catCv').addEventListener('pointerup',e=>{ if(sx0==null) return; const d=e.clientX-sx0; sx0=null; if(Math.abs(d)>40) (d<0?$('catNext'):$('catPrev')).click(); });
+
+/* ---------- Photo input ---------- */
+function showThumb(src){ const t=$('thumb'); t.hidden=false; t.innerHTML=''; const im=new Image(); im.alt='Seçilmiş şəkil'; im.src=src; t.appendChild(im); }
+function handleFile(f){
+  if(!f) return;
+  const finish=(im)=>{
+    const MAX=2400, s=Math.min(1, MAX/Math.max(im.naturalWidth||im.width, im.naturalHeight||im.height));
+    const c=document.createElement('canvas'); c.width=Math.round((im.naturalWidth||im.width)*s); c.height=Math.round((im.naturalHeight||im.height)*s);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    img=c; iw=c.width; ih=c.height; isDemo=false;
+    defaultCard(); defaultPinsForPhoto();
+    showThumb(c.toDataURL('image/jpeg',.7));
+    toast('Şəkil hazırdır'); go(3);
+  };
+  const viaReader=()=>{ const r=new FileReader(); r.onload=ev=>{ const im=new Image(); im.onload=()=>finish(im); im.onerror=()=>toast('Bu şəkil açılmadı. JPG və ya PNG formatında seçin.'); im.src=ev.target.result; }; r.onerror=()=>toast('Fayl oxunmadı'); r.readAsDataURL(f); };
+  try{ const url=URL.createObjectURL(f), im=new Image(); im.onload=()=>{ finish(im); URL.revokeObjectURL(url); }; im.onerror=()=>{ URL.revokeObjectURL(url); viaReader(); }; im.src=url; }
+  catch(_){ viaReader(); }
+}
+['fileCam','fileGal'].forEach(id=>$(id).addEventListener('change',e=>{ handleFile(e.target.files && e.target.files[0]); e.target.value=''; }));
+$('demoBtn').onclick=()=>{ loadDemo(); go(3); };
+
+/* ---------- Live camera with torch (works where the page is allowed to use the camera) ---------- */
+let stream=null, track=null, torchOn=false;
+function useBitmap(c){
+  img=c; iw=c.width; ih=c.height; isDemo=false;
+  defaultCard(); defaultPinsForPhoto(); showThumb(c.toDataURL('image/jpeg',.7));
+}
+async function openLive(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camBlocked(); return; }
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:2560}, height:{ideal:1920}}});
+  }catch(err){ camBlocked(err); return; }
+  track=stream.getVideoTracks()[0]; torchOn=false;
+  const v=$('camVideo'); v.srcObject=stream; $('cam').hidden=false; document.body.style.overflow='hidden';
+  try{ await v.play(); }catch(_){}
+  // torch capability appears only after the track starts on some phones
+  setTimeout(setupTorch, 300);
+}
+function setupTorch(){
+  const b=$('torchBtn'); let caps={};
+  try{ caps=track && track.getCapabilities ? track.getCapabilities() : {}; }catch(_){}
+  if(caps.torch){ b.disabled=false; $('torchTxt').textContent='Fənər'; }
+  else { b.disabled=true; $('torchTxt').textContent='Fənər dəstəklənmir'; }
+  b.setAttribute('aria-pressed','false');
+}
+$('torchBtn').onclick=async()=>{
+  if(!track) return;
+  try{ await track.applyConstraints({advanced:[{torch:!torchOn}]}); torchOn=!torchOn; $('torchBtn').setAttribute('aria-pressed',torchOn); }
+  catch(_){ toast('Fənəri yandırmaq alınmadı. Telefonun öz kamerasındakı ⚡ düyməsindən istifadə edin.'); }
+};
+function closeLive(){
+  if(track && torchOn){ try{ track.applyConstraints({advanced:[{torch:false}]}); }catch(_){} }
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=null; track=null; torchOn=false; $('camVideo').srcObject=null;
+  $('cam').hidden=true; document.body.style.overflow='';
+}
+$('camClose').onclick=closeLive;
+$('shutter').onclick=()=>{
+  const v=$('camVideo'); if(!v.videoWidth){ toast('Kamera hələ hazır deyil'); return; }
+  const MAX=2400, s=Math.min(1, MAX/Math.max(v.videoWidth,v.videoHeight));
+  const c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s);
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  closeLive(); useBitmap(c); toast('Şəkil çəkildi'); go(3);
+};
+function camBlocked(){
+  toast('Bu pəncərədə canlı kameraya icazə yoxdur. "Kamera" düyməsi ilə telefonun öz kamerasını açın və ⚡ ilə işığı yandırın.');
+}
+$('liveBtn').onclick=openLive;
+
+/* ---------- Homography: image px -> card plane mm ---------- */
+function solve(A,b){
+  const n=b.length;
+  for(let i=0;i<n;i++){
+    let m=i; for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[m][i])) m=r;
+    [A[i],A[m]]=[A[m],A[i]]; [b[i],b[m]]=[b[m],b[i]];
+    if(Math.abs(A[i][i])<1e-12) return null;
+    for(let r=i+1;r<n;r++){ const f=A[r][i]/A[i][i]; for(let c=i;c<n;c++) A[r][c]-=f*A[i][c]; b[r]-=f*b[i]; }
+  }
+  const x=new Array(n);
+  for(let i=n-1;i>=0;i--){ let s=b[i]; for(let c=i+1;c<n;c++) s-=A[i][c]*x[c]; x[i]=s/A[i][i]; }
+  return x;
+}
+function homography(src,dst){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){ const {x,y}=src[i],X=dst[i].x,Y=dst[i].y;
+    A.push([x,y,1,0,0,0,-X*x,-X*y]); b.push(X); A.push([0,0,0,x,y,1,-Y*x,-Y*y]); b.push(Y); }
+  return solve(A,b);
+}
+const applyH=(h,p)=>{ const w=h[6]*p.x+h[7]*p.y+1; return {x:(h[0]*p.x+h[1]*p.y+h[2])/w, y:(h[3]*p.x+h[4]*p.y+h[5])/w}; };
+function convex(q){ let sign=0;
+  for(let i=0;i<4;i++){ const a=q[i],b=q[(i+1)%4],c=q[(i+2)%4];
+    const z=(b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x); if(Math.abs(z)<1e-6) return false;
+    const s=Math.sign(z); if(!sign) sign=s; else if(s!==sign) return false; }
+  return true; }
+function calibrate(){
+  const s01=dist(card[0],card[1]), s12=dist(card[1],card[2]), s23=dist(card[2],card[3]), s30=dist(card[3],card[0]);
+  const land=(s01+s23)>=(s12+s30), W=land?CARD_L:CARD_S, H=land?CARD_S:CARD_L;
+  const h=convex(card)?homography(card,[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}]):null;
+  const longPx=land?(s01+s23)/2:(s12+s30)/2;
+  return {h, ok:!!h, longPx, persp:Math.max(s01/s23,s23/s01,s12/s30,s30/s12), pxPerCm:longPx/(CARD_L/10)};
+}
+function measure(cal){ const o={}; model.pins.forEach(p=>{ const [a,b]=pts[p.key]; o[p.key]=cal.ok?dist(applyH(cal.h,a),applyH(cal.h,b))/10:NaN; }); return o; }
+function errCm(L,cal){ const e=Math.max(1,.8/k); return Math.hypot(L*(2*e)/cal.longPx, Math.SQRT2*e/cal.pxPerCm)+.2; }
+
+/* ---------- Stage drawing ---------- */
+const V=p=>({x:p.x*k,y:p.y*k});
+function layout(){
+  if(!img) return;
+  dpr=Math.min(window.devicePixelRatio||1,3);
+  const W=stage.clientWidth, maxH=Math.max(320, window.innerHeight*.62);
+  if(!W) return;
+  let cw=W, ch=W*ih/iw; if(ch>maxH){ ch=maxH; cw=ch*iw/ih; }
+  k=cw/iw; cv.style.width=cw+'px'; cv.style.height=ch+'px';
+  cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr);
+  draw();
+}
+function ring(p,color,r){
+  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.55)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(p.x,p.y,r-1.5,0,Math.PI*2); ctx.lineWidth=2.2; ctx.strokeStyle=color; ctx.stroke();
+  ctx.fillStyle=color; ctx.fillRect(p.x-1,p.y-1,2,2);
+}
+function pill(x,y,text,color){
+  ctx.font='600 11.5px "IBM Plex Mono", ui-monospace, monospace';
+  const w=ctx.measureText(text).width+12;
+  ctx.fillStyle='rgba(12,17,14,.88)'; ctx.beginPath(); ctx.roundRect(x-w/2,y-10,w,20,6); ctx.fill();
+  ctx.strokeStyle=color; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,x,y+.5);
+}
+function draw(){
+  if(!img || step<3 || step>4) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.drawImage(img,0,0,iw*k,ih*k);
+  const cal=calibrate(), m=measure(cal), cardMode=step===3;
+  const q=card.map(V), c0={x:q.reduce((s,p)=>s+p.x,0)/4, y:q.reduce((s,p)=>s+p.y,0)/4};
+  const inner=q.map(p=>({x:c0.x+(p.x-c0.x)*.72, y:c0.y+(p.y-c0.y)*.62}));
+  ctx.beginPath(); inner.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
+  ctx.fillStyle='rgba(16,24,19,.92)'; ctx.fill();
+  ctx.beginPath(); q.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath();
+  ctx.strokeStyle=cal.ok?'#34d399':'#f87171'; ctx.lineWidth=cardMode?2:1.5; ctx.setLineDash(cardMode?[]:[4,4]); ctx.stroke(); ctx.setLineDash([]);
+  if(cardMode) q.forEach(p=>ring(p,'#34d399',13));
+  model.pins.forEach(p=>{
+    const a=V(pts[p.key][0]), b=V(pts[p.key][1]);
+    ctx.globalAlpha=cardMode?.3:1;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=4; ctx.stroke();
+    ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.setLineDash([7,5]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha=1;
+    if(!cardMode){ ring(a,p.color,12); ring(b,p.color,12); if(cal.ok) pill((a.x+b.x)/2,(a.y+b.y)/2-(Math.abs(b.y-a.y)>Math.abs(b.x-a.x)?0:15),`${p.label} ${m[p.key].toFixed(1)}`,p.color); }
+  });
+  updateStatus(cal); renderRows($('liveRows'),cal,m);
+  $('scaleTxt').textContent=cal.ok?`1 sm ≈ ${cal.pxPerCm.toFixed(1)} px`:'';
+  if(drag) drawLoupe();
+}
+function drawLoupe(){
+  const p=V(drag.ref()), R=loupe.width, src=(132/3)*dpr;
+  lctx.fillStyle='#000'; lctx.fillRect(0,0,R,R); lctx.imageSmoothingEnabled=false;
+  lctx.drawImage(cv,p.x*dpr-src/2,p.y*dpr-src/2,src,src,0,0,R,R);
+  lctx.strokeStyle='#fff'; lctx.lineWidth=2; lctx.beginPath();
+  [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx,dy])=>{ lctx.moveTo(R/2+dx*8,R/2+dy*8); lctx.lineTo(R/2+dx*28,R/2+dy*28); }); lctx.stroke();
+  lctx.strokeStyle='#ff3b30'; lctx.lineWidth=1.5; lctx.beginPath(); lctx.moveTo(R/2-5,R/2); lctx.lineTo(R/2+5,R/2); lctx.moveTo(R/2,R/2-5); lctx.lineTo(R/2,R/2+5); lctx.stroke();
+  loupe.classList.toggle('right', p.x<cv.clientWidth/2);
+}
+function updateStatus(cal){
+  let lv='ok', msg;
+  if(!cal.ok){ lv='bad'; msg='Kartın küncləri səhv sırada və ya üst-üstədir. 4 küncü kartın künclərinə saat əqrəbi istiqamətində qoyun.'; }
+  else if(cal.longPx<110){ lv='bad'; msg=`Kart şəkildə çox kiçikdir (${Math.round(cal.longPx)} px). Daha yaxından çəkin.`; }
+  else if(cal.persp>1.25){ lv='warn'; msg='Telefon xeyli maili tutulub. Perspektiv düzəldilir, amma dəqiqlik üçün masaya paralel çəkin.'; }
+  else if(cal.longPx<180){ lv='warn'; msg='Kart bir az kiçikdir. Telefonu yaxınlaşdırsanız dəqiqlik artar.'; }
+  else msg='Kalibrasiya yaxşıdır. Perspektiv avtomatik düzəldilir.';
+  $('status').className='status'+(lv==='ok'?'':' '+lv); $('statusTxt').textContent=msg;
+}
+const bonus=()=>stretch==='high'?4:stretch==='low'?2:0;
+function renderRows(el,cal,m){
+  el.innerHTML='';
+  model.pins.forEach(p=>{
+    const v=m[p.key], e=cal.ok?errCm(v,cal):0, d=document.createElement('div'); d.className='row';
+    const full=p.half&&cal.ok?`<small>çevrə ${(v*2).toFixed(1)}${bonus()?`–${(v*2+bonus()).toFixed(1)}`:''}</small>`:'';
+    d.innerHTML=`<span class="sw" style="background:${p.color}"></span><span class="nm"></span><span class="val">${cal.ok?v.toFixed(1):'—'} <span style="font-size:12px;color:var(--muted)">sm</span>${full}</span>`;
+    const nm=d.querySelector('.nm'); nm.textContent=p.name;
+    const sm=document.createElement('small'); sm.textContent=[p.half?'yarım en':'',p.sub||'',cal.ok?`± ${e.toFixed(1)} sm`:''].filter(Boolean).join(' · '); nm.appendChild(sm);
+    el.appendChild(d);
+  });
+}
+
+/* ---------- Pointer ---------- */
+function toImg(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/k, y:(e.clientY-r.top)/k}; }
+function inQuad(p,q){ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=q[j]; if(((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)) ins=!ins; } return ins; }
+cv.addEventListener('pointerdown',e=>{
+  if(!img) return;
+  const p=toImg(e); let best=null, bd=26/k;
+  if(step===3){
+    card.forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>card[i], set:v=>card[i]=v};} });
+    if(!best && inQuad(p,card)){ const st=card.map(c=>({...c})); best={ref:()=>p, move:np=>{ card=st.map(c=>({x:c.x+np.x-p.x,y:c.y+np.y-p.y})); }, noLoupe:true}; }
+  } else {
+    for(const key in pts) pts[key].forEach((c,i)=>{ const d=dist(p,c); if(d<bd){bd=d; best={ref:()=>pts[key][i], set:v=>pts[key][i]=v};} });
+  }
+  if(!best) return;
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  const cur=best.ref(); best.off={x:cur.x-p.x,y:cur.y-p.y}; drag=best; loupe.hidden=!!best.noLoupe; draw();
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag) return; e.preventDefault(); const p=toImg(e);
+  if(drag.move) drag.move(p); else drag.set({x:Math.max(0,Math.min(iw,p.x+drag.off.x)), y:Math.max(0,Math.min(ih,p.y+drag.off.y))});
+  draw();
+});
+const endDrag=()=>{ if(!drag) return; drag=null; loupe.hidden=true; draw(); };
+cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+
+/* ---------- Results ---------- */
+function payload(){
+  const cal=calibrate(), m=measure(cal), r=v=>+v.toFixed(1), meas={};
+  if(cal.ok) model.pins.forEach(p=>{ if(p.half){ meas[p.key+'_half']=r(m[p.key]); meas[p.key+'_full']=r(m[p.key]*2); meas[p.key+'_full_max_stretch']=r(m[p.key]*2+bonus()); } else meas[p.key]=r(m[p.key]); });
+  const sz=cal.ok?model.size(m):null;
+  const o={ module:'cinarmall_digital_olcu', version:4, mode, category:model.id, created_at:new Date().toISOString(),
+    calibration:{ reference:'ISO/IEC 7810 ID-1 (85.60x53.98mm)', method:'4-point homography', card_long_side_px:Math.round(cal.longPx), perspective_ratio:+cal.persp.toFixed(3) },
+    detected_size:sz?{label:sz.label, extra:sz.extra||null, basis:sz.note}:null, fabric_stretch:stretch, measurements_cm:cal.ok?meas:null };
+  if(mode==='seller'){ o.sku=$('sku').value.trim()||null; o.label_size=$('tag').value.trim()||null; } else o.note=$('note').value.trim()||null;
+  return o;
+}
+function renderResult(){
+  const cal=calibrate(), m=measure(cal), sz=model.size(m);
+  $('resCat').textContent=model.name;
+  $('resNote').textContent=`Təxmini ölçü ${sz.note}`;
+  $('sizeBig').innerHTML=''; $('sizeBig').append(sz.label);
+  if(sz.extra){ const s=document.createElement('small'); s.textContent=sz.extra; $('sizeBig').appendChild(s); }
+  renderRows($('resRows'),cal,m);
+  $('json').textContent=JSON.stringify(payload(),null,2);
+}
+$('chips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; stretch=b.dataset.s; [...$('chips').children].forEach(x=>x.setAttribute('aria-pressed',x===b)); renderResult(); });
+['sku','tag','note'].forEach(id=>$(id).addEventListener('input',()=>{ if(step===5) $('json').textContent=JSON.stringify(payload(),null,2); }));
+$('copyBtn').onclick=async()=>{ const t=$('json').textContent;
+  try{ await navigator.clipboard.writeText(t); toast('JSON kopyalandı'); }
+  catch(_){ const r=document.createRange(); r.selectNodeContents($('json')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast('Mətn seçildi, əl ilə kopyalayın'); } };
+
+const KEY='cinarmall_smartfit_v3';
+const loadH=()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(_){ return []; } };
+const saveH=h=>{ try{ localStorage.setItem(KEY,JSON.stringify(h)); return true; }catch(_){ return false; } };
+function renderHist(){
+  const h=loadH(), box=$('hist'); box.innerHTML='';
+  if(!h.length){ const p=document.createElement('p'); p.className='note'; p.style.margin='0'; p.textContent='Hələ ölçü saxlanmayıb. Saxladıqlarınız yalnız bu telefonda qalır.'; box.appendChild(p); return; }
+  h.slice().reverse().forEach((it,ri)=>{
+    const i=h.length-1-ri, d=document.createElement('div'); d.className='hitem';
+    d.innerHTML=`<span class="sz"></span><span><span class="t" style="font-weight:500"></span><span class="meta"></span></span><button>Sil</button>`;
+    d.querySelector('.sz').textContent=it.size||'—'; d.querySelector('.t').textContent=it.title; d.querySelector('.meta').textContent=it.meta;
+    d.querySelector('button').onclick=()=>{ const a=loadH(); a.splice(i,1); saveH(a); renderHist(); };
+    box.appendChild(d);
+  });
+}
+$('saveBtn').onclick=()=>{
+  const cal=calibrate(); if(!cal.ok){ toast('Əvvəl kartı düzgün yerləşdirin'); return; }
+  const m=measure(cal), p=payload(), sz=model.size(m);
+  const who = mode==='seller' ? (p.sku||'Məhsul')+(p.label_size?` · etiket ${p.label_size}`:'') : (p.note||'Alıcı ölçüsü');
+  const meta = model.pins.slice(0,4).map(x=>`${x.label} ${(x.half?m[x.key]*2:m[x.key]).toFixed(0)}`).join(' · ');
+  const h=loadH(); h.push({title:`${model.name} · ${who}`, size:sz.label, meta, payload:p});
+  toast(saveH(h)?'Ölçülər saxlanıldı':'Bu brauzerdə yaddaş bağlıdır. JSON-u kopyalayın.'); renderHist();
+};
+
+/* ---------- Mode ---------- */
+function setMode(m){
+  mode=m; $('mSeller').setAttribute('aria-pressed',m==='seller'); $('mBuyer').setAttribute('aria-pressed',m==='buyer');
+  $('sellerFields').hidden=m!=='seller'; $('buyerFields').hidden=m!=='buyer';
+  $('photoLead').textContent = m==='seller' ? 'Satış üçün məhsulun şəklini çəkin. Ölçülər məhsul kartına yazılacaq.' : 'Sizə ən yaxşı oturan paltarınızı çəkin. Onun ölçüsünə görə sizə uyğun ölçünü tapacağıq.';
+  if(step===5) renderResult();
+}
+$('mSeller').onclick=()=>setMode('seller'); $('mBuyer').onclick=()=>setMode('buyer');
+
+/* ---------- Wizard ---------- */
+function go(n){
+  if(n<0||n>5) return;
+  if(n>=3 && !img){ toast('Əvvəl şəkil çəkin və ya nümunəni seçin'); n=2; }
+  if(n>=4 && step===3 && !calibrate().ok){ toast('Kartın küncləri düzgün deyil'); return; }
+  step=n;
+  document.querySelectorAll('.screen').forEach(s=>{ const ds=+s.dataset.step; s.hidden = !(ds===n || (ds===3 && n===4)); });
+  $('wrap').classList.toggle('wide', n===3||n===4);
+  $('backBtn').disabled = n===0;
+  $('nextBtn').textContent = n===0?'Başla ›' : n===5?'Yeni ölçü ›' : 'İrəli ›';
+  $('dots').innerHTML=''; STEPS.forEach((_,i)=>{ const d=document.createElement('i'); if(i===n) d.className='on'; $('dots').appendChild(d); });
+  $('stepName').textContent=`${n+1}/${STEPS.length} · ${STEPS[n]}`;
+  if(n===1) requestAnimationFrame(renderCat);
+  if(n===3||n===4){
+    $('liveBox').hidden = n===3;
+    $('hint').innerHTML = n===3
+      ? `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">1</span><span><b>Kartın 4 küncünü</b> şəkildəki kartın künclərinə sürüşdürün. Kartın içindən tutub bütövlükdə də daşıya bilərsiniz. Ortası məxfilik üçün örtülür.</span>`
+      : `<span class="num" style="width:24px;height:24px;font-size:12px;flex:none">2</span><span><b>Rəngli nöqtələri</b> paltarın tikiş kənarlarına qoyun. Hər xəttin adı və ölçüsü üstündə yazılıb.</span>`;
+    requestAnimationFrame(layout);
+  }
+  if(n===5){ renderResult(); renderHist(); }
+  window.scrollTo({top:0});
+}
+$('backBtn').onclick=()=>go(step-1);
+$('nextBtn').onclick=()=>{
+  if(step===5){ img=null; isDemo=false; $('thumb').hidden=true; go(1); return; }
+  if(step===2 && !img){ toast('Kamera, qalereya və ya nümunəni seçin'); return; }
+  go(step+1);
+};
+
+let tt; function toast(s){ const t=$('toast'); t.textContent=s; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true, Math.max(2400, s.length*55)); }
+let rz; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(step===1) drawCatPreview(); else layout(); },120); });
+if(document.fonts) document.fonts.ready.then(()=>{ if(step>=3) draw(); });
+setMode('seller'); go(0);
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+</script>
+</body>
+</html>
