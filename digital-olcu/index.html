@@ -376,7 +376,7 @@ const MODELS = [
           pin('sleeve','Qol','Qol uzunluğu',[22.5,2],[38,62],PAL.lime,{sub:'çiyin tikişindən manjetə'}),
           pin('length','Uzunluq','Ümumi uzunluq',[-8,0],[-8,74],PAL.rose,{sub:'yaxadan ətəyə'}) ],
    size:m=>({label:band(m.chest*2,TOP,'3XL'), note:'sinə çevrəsinə görə'}) },
- { id:'shirt_sleeveless', name:'Qolsuz köynək', desc:'Yaxalı, düyməli qolsuz köynək və bluzalar', fill:'#e6e1d3', stroke:'#aaa28c',
+ { id:'shirt_sleeveless', name:'Qolsuz köynək', desc:'Yaxalı, düyməli qolsuz köynək və bluzalar', fill:'#a9c4de', stroke:'#6f8fb0',
    shape:[['M',-8,0],['L',-20,2],['Q',-19,16,-25,24],['L',-24,42],['L',-25,72],['L',25,72],['L',24,42],['L',25,24],['Q',19,16,20,2],['L',8,0],['Q',0,7,-8,0]],
    details:[[0,6.5,0,72],[-8,0,-3,8],[8,0,3,8]],
    pins:[ pin('shoulder','Çiyin','Çiyin eni',[-20,2],[20,2],PAL.sky,{sub:'qoltuq kəsiyinin üst nöqtəsi'}),
@@ -632,13 +632,17 @@ const CardDetect = (function(){
     const d=g.getImageData(0,0,w,h).data, n=w*h;
     const R=new Float32Array(n), G=new Float32Array(n), B=new Float32Array(n), L=new Float32Array(n);
     for(let i=0,j=0;i<n;i++,j+=4){ R[i]=d[j]; G[i]=d[j+1]; B[i]=d[j+2]; L[i]=.299*d[j]+.587*d[j+1]+.114*d[j+2]; }
-    // 3x3 box blur on luminance before gradients (suppresses sensor noise)
-    const Lb=new Float32Array(n);
-    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=y*w+x;
-      Lb[i]=(L[i-w-1]+L[i-w]+L[i-w+1]+L[i-1]+L[i]+L[i+1]+L[i+w-1]+L[i+w]+L[i+w+1])/9; }
+    // 3x3 box blur per channel, then edge strength = strongest of luminance / colour gradients
+    const blur=A=>{ const O=new Float32Array(n); for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=y*w+x;
+      O[i]=(A[i-w-1]+A[i-w]+A[i-w+1]+A[i-1]+A[i]+A[i+1]+A[i+w-1]+A[i+w]+A[i+w+1])/9; } return O; };
+    const Rb=blur(R), Gb=blur(G), Bb=blur(B), Lb=blur(L);
     const M=new Float32Array(n);
     for(let y=2;y<h-2;y++) for(let x=2;x<w-2;x++){ const i=y*w+x;
-      M[i]=Math.abs(Lb[i+1]-Lb[i-1])+Math.abs(Lb[i+w]-Lb[i-w]); }
+      const gl=Math.abs(Lb[i+1]-Lb[i-1])+Math.abs(Lb[i+w]-Lb[i-w]);
+      const gr=Math.abs(Rb[i+1]-Rb[i-1])+Math.abs(Rb[i+w]-Rb[i-w]);
+      const gg=Math.abs(Gb[i+1]-Gb[i-1])+Math.abs(Gb[i+w]-Gb[i-w]);
+      const gb=Math.abs(Bb[i+1]-Bb[i-1])+Math.abs(Bb[i+w]-Bb[i-w]);
+      M[i]=Math.max(gl, 0.8*Math.max(gr,gg,gb)); }
     for(let x=0;x<w;x++){ M[x]=M[w+x]=M[(h-1)*w+x]=M[(h-2)*w+x]=999; }
     for(let y=0;y<h;y++){ M[y*w]=M[y*w+1]=M[y*w+w-1]=M[y*w+w-2]=999; }
     return {w,h,s,sx,sy,R,G,B,M};
@@ -741,7 +745,7 @@ const CardDetect = (function(){
       if(c.length!==4 || !c.every((p,i)=>Math.hypot(p.x-q[i].x,p.y-q[i].y) < 0.25*Math.min(...sd))) break;
       cur=c; corners=c; lined=true;
     }
-    return {corners, lined, fill, aspect, opp, area:qa, valid: fill>0.86 && aspect>1.3 && aspect<1.95 && opp<1.45};
+    return {corners, lined, fill, aspect, opp, area:qa, valid: fill>0.88 && aspect>1.3 && aspect<1.9 && opp<1.3 && lined};
   }
   const toFull=(W,p)=>({x:W.sx+p.x/W.s, y:W.sy+p.y/W.s});
   const PARAMS=[{Tn:12,Ts:60,G:30},{Tn:18,Ts:80,G:42},{Tn:26,Ts:110,G:60},{Tn:36,Ts:140,G:85}];
@@ -837,7 +841,9 @@ const GarmentAuto = (function(){
     const c=mk(w,h), g=c.getContext('2d',{willReadFrequently:true});
     g.drawImage(src,0,0,w,h);
     const d=g.getImageData(0,0,w,h).data, n=w*h, R=new Float32Array(n), G=new Float32Array(n), B=new Float32Array(n);
-    for(let i=0,j=0;i<n;i++,j+=4){ R[i]=d[j]; G[i]=d[j+1]; B[i]=d[j+2]; }
+    // features: colour relative to brightness (a shadow keeps it, a different fabric does not) + damped brightness
+    for(let i=0,j=0;i<n;i++,j+=4){ const r=d[j],gg=d[j+1],b=d[j+2], L=(r+gg+b)/3, k=100/(L+20);
+      R[i]=(r-gg)*k; G[i]=((r+gg)/2-b)*k; B[i]=0.3*L; }
     return {w,h,s,R,G,B};
   }
   function inQuad(p,q){ let ins=false; for(let i=0,j=3;i<4;j=i++){ const a=q[i],b=q[j]; if(((a.y>p.y)!==(b.y>p.y))&&(p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)) ins=!ins; } return ins; }
@@ -865,7 +871,7 @@ const GarmentAuto = (function(){
   const inv=M=>{ const O=new Uint8Array(M.length); for(let i=0;i<M.length;i++) O[i]=M[i]?0:1; return O; };
   const erode=(M,w,h,r)=>inv(dilate(inv(M),w,h,r));
 
-  function segment(W, cardQ){
+  function segment(W, cardQ, ppc){
     const {w,h,R,G,B}=W, n=w*h;
     const cx=cardQ?cardQ.reduce((s,p)=>s+p.x,0)/4:0, cy=cardQ?cardQ.reduce((s,p)=>s+p.y,0)/4:0;
     const cardBig=cardQ?cardQ.map(p=>({x:cx+(p.x-cx)*1.25, y:cy+(p.y-cy)*1.25})):null;
@@ -877,19 +883,27 @@ const GarmentAuto = (function(){
       if(isCard(x,y)) continue; const i=y*w+x; S.push({x,y,r:R[i],g:G[i],b:B[i]});
     }
     if(S.length<30) return {ok:false, reason:'fon'};
-    let P;
-    for(let pass=0;pass<3;pass++){
-      P={r:fitPlane(S,'r'), g:fitPlane(S,'g'), b:fitPlane(S,'b')};
-      const res=S.map(p=>Math.hypot(p.r-(P.r[0]+P.r[1]*p.x+P.r[2]*p.y), p.g-(P.g[0]+P.g[1]*p.x+P.g[2]*p.y), p.b-(P.b[0]+P.b[1]*p.x+P.b[2]*p.y)));
-      const sorted=res.slice().sort((a,b)=>a-b), med=sorted[sorted.length>>1];
-      const keep=S.filter((_,i)=>res[i]<=Math.max(8, med*2.5));
-      if(keep.length<30||keep.length===S.length) break; S=keep;
+    // background = a handful of colour clusters from the border (wood planks, knots, tiles, light falloff)
+    const K=Math.min(12, Math.max(2, Math.floor(S.length/40)));
+    let CC=[]; { // deterministic k-means++ style seeding
+      CC.push([S[0].r,S[0].g,S[0].b]);
+      while(CC.length<K){ let bi=0,bd=-1; for(let i=0;i<S.length;i+=3){ const p=S[i]; let m=Infinity;
+        for(const c of CC){ const d=(p.r-c[0])**2+(p.g-c[1])**2+(p.b-c[2])**2; if(d<m) m=d; } if(m>bd){bd=m;bi=i;} }
+        CC.push([S[bi].r,S[bi].g,S[bi].b]); } }
+    let cnt=new Array(K).fill(0);
+    for(let it=0; it<8; it++){
+      const acc=CC.map(()=>[0,0,0]); cnt=new Array(K).fill(0);
+      for(const p of S){ let bi=0,bd=Infinity; CC.forEach((c,k)=>{ const d=(p.r-c[0])**2+(p.g-c[1])**2+(p.b-c[2])**2; if(d<bd){bd=d;bi=k;} });
+        acc[bi][0]+=p.r; acc[bi][1]+=p.g; acc[bi][2]+=p.b; cnt[bi]++; }
+      CC=CC.map((c,k)=>cnt[k]?[acc[k][0]/cnt[k],acc[k][1]/cnt[k],acc[k][2]/cnt[k]]:c);
     }
-    // 2. colour distance to the local background, Otsu threshold
+    // a cluster seen on only a sliver of the border is probably the garment itself touching the edge
+    const bg=CC.filter((_,k)=>cnt[k]>=0.015*S.length);
+    // 2. colour distance to the nearest background cluster, Otsu threshold
     const D=new Float32Array(n), hist=new Float64Array(256); let cntH=0;
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x;
-      const d=Math.hypot(R[i]-(P.r[0]+P.r[1]*x+P.r[2]*y), G[i]-(P.g[0]+P.g[1]*x+P.g[2]*y), B[i]-(P.b[0]+P.b[1]*x+P.b[2]*y));
-      D[i]=d; if(!isCard(x,y)){ hist[Math.min(255,Math.round(Math.min(d,85)*3))]++; cntH++; } }
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; let m=Infinity;
+      for(const c of bg){ const d=(R[i]-c[0])**2+(G[i]-c[1])**2+(B[i]-c[2])**2; if(d<m) m=d; }
+      const d=Math.sqrt(m); D[i]=d; if(!isCard(x,y)){ hist[Math.min(255,Math.round(Math.min(d,85)*3))]++; cntH++; } }
     let sum=0; for(let t=0;t<256;t++) sum+=t*hist[t];
     let sB=0,wB=0,best=0,thr=20;
     for(let t=0;t<256;t++){ wB+=hist[t]; if(!wB) continue; const wF=cntH-wB; if(!wF) break; sB+=t*hist[t];
@@ -897,23 +911,28 @@ const GarmentAuto = (function(){
     thr=Math.max(14, thr/3);
     let M=new Uint8Array(n);
     for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; M[i]=(D[i]>thr && !isCard(x,y))?1:0; }
-    // 3. clean: close small gaps, remove specks
-    M=erode(dilate(M,w,h,2),w,h,2); M=dilate(erode(M,w,h,1),w,h,1);
-    // 4. largest connected component
-    const lab=new Int32Array(n), q=new Int32Array(n); let bestL=0,bestA=0,L=0;
-    for(let s=0;s<n;s++){ if(!M[s]||lab[s]) continue; L++; let hd=0,tl=0,a=0; q[tl++]=s; lab[s]=L;
-      while(hd<tl){ const i=q[hd++]; a++; const x=i%w;
-        if(x>0&&M[i-1]&&!lab[i-1]){lab[i-1]=L;q[tl++]=i-1;} if(x<w-1&&M[i+1]&&!lab[i+1]){lab[i+1]=L;q[tl++]=i+1;}
-        if(i>=w&&M[i-w]&&!lab[i-w]){lab[i-w]=L;q[tl++]=i-w;} if(i<n-w&&M[i+w]&&!lab[i+w]){lab[i+w]=L;q[tl++]=i+w;} }
-      if(a>bestA){bestA=a;bestL=L;} }
-    if(!bestL) return {ok:false, reason:'paltar'};
-    const C=new Uint8Array(n); for(let i=0;i<n;i++) C[i]=lab[i]===bestL?1:0;
-    // 5. fill holes (prints, logos, the card if it lies on the garment)
-    const out=new Uint8Array(n); let hd=0,tl=0;
-    const push=i=>{ if(!C[i]&&!out[i]){ out[i]=1; q[tl++]=i; } };
-    for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); } for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
-    while(hd<tl){ const i=q[hd++], x=i%w; if(x>0)push(i-1); if(x<w-1)push(i+1); if(i>=w)push(i-w); if(i<n-w)push(i+w); }
-    let area=0; for(let i=0;i<n;i++){ C[i]=out[i]?0:1; area+=C[i]; }
+    const ro=Math.max(1,Math.round(0.4*(ppc||4)));
+    const q=new Int32Array(n);
+    // clean a raw mask: close small gaps, open (~0.8 cm, cuts thin floor seams), keep the largest blob, fill its holes
+    const clean=(M0)=>{
+      let M=erode(dilate(M0,w,h,2),w,h,2); M=dilate(erode(M,w,h,ro),w,h,ro);
+      const lab=new Int32Array(n); let bestL=0,bestA=0,L=0;
+      for(let s=0;s<n;s++){ if(!M[s]||lab[s]) continue; L++; let hd=0,tl=0,a=0; q[tl++]=s; lab[s]=L;
+        while(hd<tl){ const i=q[hd++]; a++; const x=i%w;
+          if(x>0&&M[i-1]&&!lab[i-1]){lab[i-1]=L;q[tl++]=i-1;} if(x<w-1&&M[i+1]&&!lab[i+1]){lab[i+1]=L;q[tl++]=i+1;}
+          if(i>=w&&M[i-w]&&!lab[i-w]){lab[i-w]=L;q[tl++]=i-w;} if(i<n-w&&M[i+w]&&!lab[i+w]){lab[i+w]=L;q[tl++]=i+w;} }
+        if(a>bestA){bestA=a;bestL=L;} }
+      if(!bestL) return null;
+      const C=new Uint8Array(n); for(let i=0;i<n;i++) C[i]=lab[i]===bestL?1:0;
+      const out=new Uint8Array(n); let hd=0,tl=0;
+      const push=i=>{ if(!C[i]&&!out[i]){ out[i]=1; q[tl++]=i; } };
+      for(let x=0;x<w;x++){ push(x); push((h-1)*w+x); } for(let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+      while(hd<tl){ const i=q[hd++], x=i%w; if(x>0)push(i-1); if(x<w-1)push(i+1); if(i>=w)push(i-w); if(i<n-w)push(i+w); }
+      for(let i=0;i<n;i++) C[i]=out[i]?0:1;
+      return C;
+    };
+    let C=clean(M); if(!C) return {ok:false, reason:'paltar'};
+    let area=0; for(let i=0;i<n;i++) area+=C[i];
     let edge=0; for(let x=0;x<w;x++){ edge+=C[x]+C[(h-1)*w+x]; } for(let y=0;y<h;y++){ edge+=C[y*w]+C[y*w+w-1]; }
     const frac=area/n;
     if(frac<0.04) return {ok:false, reason:'kiçik'};
@@ -947,6 +966,7 @@ const GarmentAuto = (function(){
       const v=width(y); if(!v) continue;
       if(hist.length>=5){ const loc=median(hist.slice(-10));
         if(v>loc*1.16 && maxY!==null){ ya=y+1; break; }
+        const step=Math.round(ppc), wb=width(y+step); if(wb && v-wb>1.5*ppc){ ya=y+step; break; }
         if(maxY!==null && maxW>minW*1.02 && v<maxW*0.965){ ya=maxY; break; } }
       const rose=maxW>minW*1.02;
       if(v<minW && !rose){ minW=v; maxW=v; maxY=y; } else if(v>maxW){ maxW=v; maxY=y; }
@@ -970,34 +990,47 @@ const GarmentAuto = (function(){
       const a=side<0?cx-0.45*Wc:cx+0.03*Wc, b=side<0?cx-0.03*Wc:cx+0.45*Wc;
       for(let x=Math.round(a); x<=b; x++){ const t=g.T[x]; if(t<0) continue; if(t<by-0.5 || (t<=by+1 && Math.abs(x-cx)<Math.abs(bx-cx))){ if(t<by) by=t; bx=x; } }
       return bx<0?null:{x:bx,y:g.T[bx]}; };
-    const hl=hps(-1), hr=hps(1);
-    if(hl){ pts.length=[{x:hl.x,y:hl.y-0.5},{x:hl.x,y:g.B[hl.x]+0.5}]; conf.length=true; }
-    // shoulder tip: walking outward along the top edge, the first place it turns steeply down
     const lineFit=(xa,xb)=>{ let n=0,sx=0,sy=0,sxx=0,sxy=0; const lo=Math.min(xa,xb), hi=Math.max(xa,xb);
       for(let x=Math.round(lo); x<=hi; x++){ const t=g.T[x]; if(t<0) continue; n++; sx+=x; sy+=t; sxx+=x*x; sxy+=x*t; }
       if(n<3) return null; const den=n*sxx-sx*sx; if(Math.abs(den)<1e-9) return null; const b=(n*sxy-sx*sy)/den; return {a:(sy-b*sx)/n, b}; };
-    const tip=(h0,side)=>{ if(!h0) return null; const d=Math.max(2,Math.round(1.2*ppc));
-      for(let x=h0.x+side*Math.round(2*ppc); x>=d&&x<g.T.length-d; x+=side){
-        const t0=g.T[x], t1=g.T[x+side*d]; if(t0<0||t1<0) return {p:{x,y:t0>=0?t0:h0.y},ok:false};
-        if((t1-t0)/d>0.8){
-          // knee = last column that still sits on the shoulder slope line
-          const L1=lineFit(h0.x+side*Math.round(1.5*ppc), x);
-          if(L1){ let xk=x; for(let xx=x; Math.abs(xx-x)<=2*d; xx+=side){ const t=g.T[xx]; if(t<0) break;
-              if(t-(L1.a+L1.b*xx)<=0.25*ppc) xk=xx; else break; }
-            return {p:{x:xk+side*0.5,y:L1.a+L1.b*(xk+side*0.5)},ok:true}; }
-          return {p:{x,y:t0},ok:true}; } }
+    // shoulder line: the top edge between the neck/collar and the sleeve
+    const shLine=side=>{ let L=lineFit(cx+side*0.22*Wc, cx+side*0.38*Wc); if(!L) return null;
+      // one refit without outliers (a collar point or the start of the sleeve)
+      const xs=[]; for(let x=Math.round(Math.min(cx+side*0.22*Wc,cx+side*0.38*Wc)); x<=Math.max(cx+side*0.22*Wc,cx+side*0.38*Wc); x++) if(g.T[x]>=0 && Math.abs(g.T[x]-(L.a+L.b*x))<0.5*ppc) xs.push(x);
+      if(xs.length>=3){ const L2=lineFit(xs[0], xs[xs.length-1]); if(L2) L=L2; }
+      return Math.abs(L.b)<1.2 ? L : null; };
+    const SL=cat==='tank'?null:shLine(-1), SR=cat==='tank'?null:shLine(1);
+    const hpsLine=(L,side)=>{ if(!L) return null; let x=Math.round(cx+side*0.22*Wc), last=x;
+      for(; Math.abs(x-cx)>0.03*Wc; x-=side){ const t=g.T[x]; if(t<0||Math.abs(t-(L.a+L.b*x))>0.5*ppc) break; last=x; }
+      return {x:last, y:L.a+L.b*last}; };
+    const hpsTop=side=>{ let bx=-1, by=Infinity;
+      const a=side<0?cx-0.45*Wc:cx+0.03*Wc, b=side<0?cx-0.03*Wc:cx+0.45*Wc;
+      for(let x=Math.round(a); x<=b; x++){ const t=g.T[x]; if(t<0) continue; if(t<by-0.5 || (t<=by+1 && Math.abs(x-cx)<Math.abs(bx-cx))){ if(t<by) by=t; bx=x; } }
+      return bx<0?null:{x:bx,y:g.T[bx]}; };
+    const hl=hpsLine(SL,-1)||hpsTop(-1), hr=hpsLine(SR,1)||hpsTop(1);
+    if(hl){ pts.length=[{x:hl.x,y:hl.y-0.5},{x:hl.x,y:g.B[hl.x]+0.5}]; conf.length=!!SL; }
+    // shoulder tip: where the top edge leaves the shoulder line; a sharp drop (sleeve or armhole) is a confident tip
+    const tip=(L,side)=>{ if(!L) return null; const x0=Math.round(cx+side*0.38*Wc);
+      for(let x=x0; x>=0&&x<g.T.length; x+=side){ const t=g.T[x];
+        if(t<0 || Math.abs(t-(L.a+L.b*x))>0.6*ppc){ const xk=x-side; const xn=Math.min(g.T.length-1,Math.max(0,x+side*Math.round(ppc)));
+          const sharp = t<0 || (g.T[xn]>=0 && g.T[xn]-(L.a+L.b*xn)>1.5*ppc);
+          return {p:{x:xk+side*0.5, y:L.a+L.b*(xk+side*0.5)}, ok:sharp}; } }
       return null; };
-    const tl=tip(hl,-1), tr=tip(hr,1);
+    const tl=tip(SL,-1), tr=tip(SR,1);
     if(tl&&tr){ pts.shoulder=[tl.p,tr.p]; conf.shoulder=tl.ok&&tr.ok&&Math.abs(tl.p.y-tr.p.y)<1.5*ppc; }
     if(tr && (cat==='shirt'||cat==='jacket')){
       // sleeve end: farthest garment point from the right shoulder tip, outside the body
-      let bp=null, bd=0;
-      for(let y=Math.round(tr.p.y); y<=g.y1; y++){ const r=g.runs(y); if(!r.length) continue;
-        const body=runAt(g,y,cx); let cand=null;
-        if(y<=ya) cand=r[r.length-1][1];
-        else { const out=r.filter(s=>body && s[0]>=body[1]+1 && s[1]-s[0]>=0.8*ppc); if(out.length) cand=out[out.length-1][1]; }
-        if(cand===null || cand<tr.p.x+ppc || (sc && cand<sc[1]+ppc)) continue;
-        const d=Math.hypot(cand-tr.p.x,y-tr.p.y); if(d>bd){bd=d;bp={x:cand,y};} }
+      let bp=null, bd=0, up=null;
+      const consider=(x,y)=>{ if(x<tr.p.x+ppc || (sc && x<sc[1]+ppc)) return; const d=Math.hypot(x-tr.p.x,y-tr.p.y); if(d>bd){bd=d;bp={x,y};} };
+      // above the armpit the sleeve end is the outermost point of the outline (short or raised sleeve)
+      for(let y=Math.round(tr.p.y); y<=ya; y++){ const r=g.runs(y); if(!r.length) continue; const x=r[r.length-1][1];
+        if(x>=tr.p.x+ppc && (!up || x>up.x)) up={x,y}; }
+      // below it, a hanging sleeve is its own strip: follow it row by row while it stays connected
+      let prev=null, miss=0;
+      for(let y=ya+1; y<=g.y1 && miss<=ppc; y++){ const body=runAt(g,y,cx); if(!body){ miss++; continue; }
+        const out=g.runs(y).filter(s=>s[0]>=body[1]+1 && (!prev || (s[0]<=prev[1]+2 && s[1]>=prev[0]-2)));
+        if(out.length){ const s2=out[out.length-1]; prev=s2; miss=0; consider(s2[1], y); } else if(prev){ miss++; } else if(y>ya+2*ppc) break; }
+      if(!bp && up){ bp=up; bd=Math.hypot(up.x-tr.p.x, up.y-tr.p.y); }
       if(bp){ pts.sleeve=[tr.p,bp]; conf.sleeve=tr.ok && bd>8*ppc; }
     }
     return {pts,conf};
@@ -1047,7 +1080,7 @@ const GarmentAuto = (function(){
   function measure(src, cardQuad, cat, pxPerCm){
     const W=load(src, 640), ppc=pxPerCm*W.s;
     const cq=cardQuad?cardQuad.map(p=>({x:p.x*W.s,y:p.y*W.s})):null;
-    const seg=segment(W,cq); if(!seg.ok) return {ok:false, reason:seg.reason};
+    const seg=segment(W,cq,ppc); if(!seg.ok) return {ok:false, reason:seg.reason};
     // straighten a tilted photo: the garment's symmetry axis should be vertical
     let M=seg.M, ang=0; const c0={x:W.w/2,y:W.h/2};
     const rot=(p,a)=>({x:c0.x+(p.x-c0.x)*Math.cos(a)-(p.y-c0.y)*Math.sin(a), y:c0.y+(p.x-c0.x)*Math.sin(a)+(p.y-c0.y)*Math.cos(a)});
